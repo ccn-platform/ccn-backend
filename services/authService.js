@@ -1,0 +1,306 @@
+ const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+
+const User = require("../models/User");
+const Customer = require("../models/Customer");
+const Agent = require("../models/Agent");
+const BusinessCategory = require("../models/businessCategory");
+const FaceBiometric = require("../models/FaceBiometric"); // 🆕 SAFE ADD
+const idGenerator = require("../utils/idGenerator");
+const normalizePhone = require("../utils/normalizePhone");
+const crypto = require("crypto");
+const pushService = require("./pushService");
+
+const JWT_SECRET = process.env.JWT_SECRET || "changeThisSecret";
+
+class AuthService {
+   validatePhone(phone) {
+  // normalizePhone tayari inafanya validation kamili
+  // kama phone si sahihi, itatupa error yenye message sahihi
+  normalizePhone(phone);
+}
+
+  
+
+  validatePin(pin) {
+    if (!/^\d{4,6}$/.test(pin)) {
+      throw new Error("PIN lazima iwe namba kati ya tarakimu 4 hadi 6.");
+    }
+  }
+
+  /**
+   * ======================================================
+   * TOKEN GENERATION
+   * ======================================================
+   */
+  generateTokens(user) {
+    const accessToken = jwt.sign(
+      {
+        userId: user._id,
+        systemId: user.systemId,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      JWT_SECRET + "_REFRESH",
+      { expiresIn: "7d" }
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * ======================================================
+   * REGISTER CUSTOMER (NIDA or NON-NIDA)
+   * ======================================================
+   * - phone uniqueness
+   * - nationalId uniqueness
+   * - biometric handled separately (SAFE)
+   */
+  async registerCustomer(data) {
+    let { fullName, phone, pin, nationalId, biometricId } = data;
+
+    phone = normalizePhone(phone);
+
+    this.validatePhone(phone);
+    this.validatePin(pin);
+
+    // 1️⃣ PHONE DUPLICATE
+    const existing = await User.findOne({ phone });
+    if (existing) {
+      throw new Error("Namba ya simu tayari imesajiliwa.");
+    }
+
+    // 2️⃣ NIDA DUPLICATE
+    if (nationalId) {
+      const nidaExists = await User.findOne({ nationalId });
+      if (nidaExists) {
+        throw new Error("NIDA hii tayari imetumika.");
+      }
+    }
+
+    // 3️⃣ CREATE CUSTOMER USER
+    const hashedPin = await bcrypt.hash(pin, 10);
+    const customerId = idGenerator.generateCustomerID();
+
+    const user = await User.create({
+      fullName,
+      phone,
+      pin: hashedPin,
+      nationalId: nationalId || null,
+      role: "customer",
+      systemId: customerId,
+      loginAttempts: 0,
+      lastLogin: null,
+      blockedUntil: null,
+    });
+
+    await Customer.create({
+      user: user._id,
+      customerId,
+    });
+
+    // --------------------------------------------------
+    // 🆕 SAFE ADD — LINK FACE BIOMETRIC (IF EXISTS)
+    // --------------------------------------------------
+    if (biometricId) {
+      await FaceBiometric.findByIdAndUpdate(biometricId, {
+        userId: user._id,
+      });
+    }
+
+    const tokens = this.generateTokens(user);
+    return { user, ...tokens };
+  }
+
+  /**
+   * ======================================================
+   * LOGIN
+   * ======================================================
+   */
+  async loginWithPin({ phone, pin }) {
+    phone = normalizePhone(phone);
+
+    this.validatePhone(phone);
+    this.validatePin(pin);
+
+    const user = await User.findOne({ phone });
+    if (!user) throw new Error("Akaunti haipo.");
+
+    if (user.blockedUntil && new Date() < user.blockedUntil) {
+      throw new Error("Akaunti imezuiwa kwa muda.");
+    }
+
+    const match = await bcrypt.compare(pin, user.pin);
+    if (!match) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+      if (user.loginAttempts >= 5) {
+        user.blockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+      }
+
+      await user.save();
+      throw new Error("PIN sio sahihi.");
+    }
+
+    user.loginAttempts = 0;
+    user.blockedUntil = null;
+    user.lastLogin = new Date();
+    await user.save();
+
+    const tokens = this.generateTokens(user);
+
+    let onboardingStep = null;
+    if (user.role === "agent") {
+      const agent = await Agent.findOne({ user: user._id }).select("onboardingStep");
+      onboardingStep = agent?.onboardingStep || "PAYOUT_REQUIRED";
+    }
+
+    return {
+      user,
+      onboardingStep,
+      ...tokens,
+    };
+  }
+
+  /**
+   * ======================================================
+   * REFRESH TOKEN
+   * ======================================================
+   */
+  async refreshToken(refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, JWT_SECRET + "_REFRESH");
+      const user = await User.findById(decoded.userId);
+      if (!user) throw new Error("User not found.");
+      return this.generateTokens(user);
+    } catch {
+      throw new Error("Refresh token is invalid or expired.");
+    }
+  }
+
+  /**
+   * ======================================================
+   * AGENT / ADMIN (UNCHANGED)
+   * ======================================================
+   */
+  async registerAgent(data) {
+    let { fullName, phone, pin, businessName, businessCategoryId } = data;
+
+    phone = normalizePhone(phone);
+    this.validatePhone(phone);
+    this.validatePin(pin);
+
+    const exists = await User.findOne({ phone });
+    if (exists) throw new Error("Namba tayari imesajiliwa.");
+
+    const category = await BusinessCategory.findById(businessCategoryId);
+    if (!category) throw new Error("Business category haipo.");
+
+    const hashedPin = await bcrypt.hash(pin, 10);
+    const agentId = idGenerator.generateAgentID?.() || `AG-${Date.now()}`;
+
+    const user = await User.create({
+      fullName,
+      phone,
+      pin: hashedPin,
+      role: "agent",
+      businessName,
+      businessCategory: businessCategoryId,
+      systemId: agentId,
+    });
+
+    await Agent.create({
+      user: user._id,
+      agentId,
+      normalizedPhone: phone,
+      fullName,
+      phone,
+      pin: hashedPin,
+      businessName,
+      businessCategory: businessCategoryId,
+      isVerified: false,
+      status: "active",
+    });
+
+    const tokens = this.generateTokens(user);
+    return { user, onboardingStep: "PAYOUT_REQUIRED", ...tokens };
+  }
+
+  async registerAdmin(data) {
+    let { fullName, phone, pin } = data;
+
+    phone = normalizePhone(phone);
+    this.validatePhone(phone);
+    this.validatePin(pin);
+
+    const exists = await User.findOne({ phone });
+    if (exists) throw new Error("Namba tayari imesajiliwa.");
+
+    const hashedPin = await bcrypt.hash(pin, 10);
+    const adminId = idGenerator.generateAdminID?.() || `ADM-${Date.now()}`;
+
+    const user = await User.create({
+      fullName,
+      phone,
+      pin: hashedPin,
+      role: "admin",
+      systemId: adminId,
+    });
+
+    const tokens = this.generateTokens(user);
+    return { user, ...tokens };
+  }
+
+  /**
+   * ======================================================
+   * RESET PIN (UNCHANGED)
+   * ======================================================
+   */
+  async sendResetPinCode(rawPhone) {
+    const phone = rawPhone;
+    this.validatePhone(phone);
+
+    const user = await User.findOne({ phone });
+    if (!user) return;
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
+    user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
+    await user.save();
+
+    await pushService.sendToUser(user._id, {
+      title: "Reset PIN",
+      body: `Code yako ya kurekebisha PIN ni: ${code}`,
+      type: "PIN_RESET",
+    });
+  }
+
+  async resetPin({ rawPhone, code, newPin }) {
+    const phone = rawPhone;
+    this.validatePhone(phone);
+    this.validatePin(newPin);
+
+    const user = await User.findOne({ phone });
+    if (!user) throw new Error("Invalid request");
+
+    const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+
+    if (user.resetPinCode !== hashedCode || user.resetPinExpiresAt < Date.now()) {
+      throw new Error("Code si sahihi au ime-expire");
+    }
+
+    user.pin = await bcrypt.hash(newPin, 10);
+    user.resetPinCode = null;
+    user.resetPinExpiresAt = null;
+    await user.save();
+  }
+}
+
+module.exports = new AuthService();
