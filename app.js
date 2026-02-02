@@ -107,7 +107,7 @@ app.get("/", (req, res) => {
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
 // =====================================================
- const Logger = require("./services/LoggerService");
+ const Logger = require("./services/loggerService");
 
 app.use((err, req, res, next) => {
   Logger.error("UNHANDLED_SERVER_ERROR", {
@@ -129,3 +129,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
