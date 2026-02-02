@@ -3,11 +3,11 @@
 const connectDB = async () => {
   try {
     mongoose.set("strictQuery", false);
-      const mongoURI =
-      process.env.MONGO_URI_ATLAS ||
+
+    // ⚠️ URI SAHIHI – HAKUNA "MONGO_URI_ATLAS=" HAPA
+    const mongoURI =
       "mongodb+srv://app_user:Ibra987654321@commodity-credit-cluster0.jffgeq2.mongodb.net/ccn_database";
 
-     
     console.log("Mongo URI used:", mongoURI);
 
     await mongoose.connect(mongoURI, {
