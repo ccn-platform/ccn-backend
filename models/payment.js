@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
   {
@@ -94,4 +94,6 @@ paymentSchema.index({ customer: 1 });
 paymentSchema.index({ loan: 1 });
 paymentSchema.index({ reference: 1 });
 
-module.exports = mongoose.model("Payment", paymentSchema);
+ module.exports =
+  mongoose.models.Payment ||
+  mongoose.model("Payment", paymentSchema);
