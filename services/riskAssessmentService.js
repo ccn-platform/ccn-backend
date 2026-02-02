@@ -1,4 +1,4 @@
- // services/riskAssessmentService.js
+  // services/riskAssessmentService.js
 
 const RiskAssessment = require("../models/riskAssessment");
 const Loan = require("../models/Loan");
@@ -6,9 +6,9 @@ const Loan = require("../models/Loan");
 // Business services
 const globalDebtService = require("./globalDebtService");
 
-// AI engines
-const riskScoringEngine = require("../ai/credit/riskScoringEngine");
-const fraudDetector = require("../ai/fraud/fraudDetector");
+ // const riskScoringEngine = require("../ai/credit/riskScoringEngine");
+// const fraudDetector = require("../ai/fraud/fraudDetector");
+
 
 // Optional: logger (ukitaka kutumia baadaye)
 const logger = require("../utils/logger");
@@ -26,16 +26,23 @@ class RiskAssessmentService {
     const debtSummary = await globalDebtService.getUserDebtSummary(customerId);
     const behaviorScore = await globalDebtService.getRepaymentBehaviorScore(customerId);
 
-    const creditResult = await riskScoringEngine.evaluate(
-      customerId,
-      agentId,
-      amount,
-      incomeEstimate
-    );
+     const creditResult = {
+        score: 0.3,
+        band: "LOW",
+        decision: "REVIEW",
+        decisionReasons: ["AI engine disabled"],
+        reasons: ["Default rule-based scoring"]
+     };
+
 
     const riskScore = Math.round((creditResult.score || 0) * 100);
 
-    const fraudResult = await fraudDetector.evaluate(customerId, agentId);
+     const fraudResult = {
+       overallRisk: 0,
+       customer: { signals: [] },
+       agent: { signals: [] }
+    };
+
     const fraudScore = fraudResult.overallRisk || 0;
 
     let fraudLevel = "LOW";
