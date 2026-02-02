@@ -1,0 +1,32 @@
+ // backend/automation/onLoanRequestTrigger.js
+
+const creditHistoryService = require("../services/creditHistoryService");
+const riskAssessmentService = require("../services/riskAssessmentService");
+const notificationService = require("../services/notificationService");
+
+class OnLoanRequestTrigger {
+  async run(loan) {
+    try {
+      console.log("⚡ Running Loan Request Trigger...");
+
+      await creditHistoryService.registerLoanCreated(loan);
+
+      await riskAssessmentService.evaluate(
+        loan.customer,
+        loan.agent,
+        loan.amount
+      );
+
+      await notificationService.sendLoanCreated(
+        loan.customer,
+        loan.amount
+      );
+
+      console.log("✔ Loan trigger completed.");
+    } catch (error) {
+      console.error("❌ Loan Request Trigger Error:", error.message);
+    }
+  }
+}
+
+module.exports = new OnLoanRequestTrigger();
