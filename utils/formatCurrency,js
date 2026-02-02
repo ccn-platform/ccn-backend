@@ -1,0 +1,11 @@
+ // utils/formatCurrency.js
+
+module.exports = function formatCurrency(amount) {
+  if (!amount) amount = 0;
+
+  return Number(amount).toLocaleString("sw-TZ", {
+    style: "currency",
+    currency: "TZS",
+    minimumFractionDigits: 0
+  });
+};
