@@ -1,4 +1,4 @@
-   const mongoose = require("mongoose");
+    const mongoose = require("mongoose");
 const AgentFee = require("../models/agentFee");
 const AgentFeePayment = require("../models/agentFeePayment");
 const ControlNumber = require("../models/controlNumber");
@@ -106,6 +106,56 @@ async createInitialFee(agentId) {
 
   return fee;
 }
+/**
+ * ======================================================
+ * CHECK SUBSCRIPTION STATUS (INCLUDES FREE TRIAL)
+ * ======================================================
+ */
+async checkStatus(agentId) {
+  const agentObjectId = await resolveAgentObjectId(agentId);
+
+  let fee = await AgentFee.findOne({ agent: agentObjectId }).sort({
+    createdAt: -1,
+  });
+
+  if (!fee) {
+    fee = await this.createInitialFee(agentObjectId);
+  }
+
+  if (!fee.endDate) {
+    return {
+      isActive: false,
+      status: "inactive",
+      remainingDays: 0,
+    };
+  }
+
+  const today = dayjs();
+  const expiry = dayjs(fee.endDate);
+
+  if (today.isAfter(expiry)) {
+    fee.status = "expired";
+    await fee.save();
+    await syncAgentFeeSnapshot(agentObjectId, fee);
+
+    return {
+      isActive: false,
+      status: "expired",
+      remainingDays: 0,
+      expiresOn: expiry.format("YYYY-MM-DD"),
+      plan: fee.plan,
+    };
+  }
+
+  return {
+    isActive: true,
+    status: "active",
+    remainingDays: expiry.diff(today, "day"),
+    expiresOn: expiry.format("YYYY-MM-DD"),
+    plan: fee.plan, // FREE_TRIAL INCLUDED
+  };
+}
+
 
   /**
    * ======================================================
