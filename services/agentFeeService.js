@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+   const mongoose = require("mongoose");
 const AgentFee = require("../models/agentFee");
 const AgentFeePayment = require("../models/agentFeePayment");
 const ControlNumber = require("../models/controlNumber");
@@ -66,73 +66,46 @@ async function syncAgentFeeSnapshot(agentId, fee) {
 }
 
 class AgentFeeService {
-  /**
-   * ======================================================
-   * CREATE INITIAL FEE (NO FREE)
-   * ======================================================
-   */
-  async createInitialFee(agentId) {
-    const agentObjectId = await resolveAgentObjectId(agentId);
+  
+    /**
+ * ======================================================
+ * CREATE INITIAL FEE (FREE TRIAL – FIRST TIME ONLY)
+ * ======================================================
+ */
+async createInitialFee(agentId) {
+  const agentObjectId = await resolveAgentObjectId(agentId);
 
-    const fee = await AgentFee.create({
-      agent: agentObjectId,
-      startDate: null,
-      endDate: null,
-      status: "inactive",
-      notes: "Awaiting first payment",
-    });
+  // 🔎 Hakiki kama agent ana history
+  const existing = await AgentFee.findOne({ agent: agentObjectId });
 
-    await syncAgentFeeSnapshot(agentObjectId, fee);
-    return fee;
+  if (existing) {
+    // already exists → usiguse
+    return existing;
   }
 
-  /**
-   * ======================================================
-   * CHECK STATUS
-   * ======================================================
-   */
-  async checkStatus(agentId) {
-    const agentObjectId = await resolveAgentObjectId(agentId);
+  // 🆓 FREE TRIAL: 1 MONTH
+  const start = dayjs();
+  const end = start.add(1, "month");
 
-    let fee = await AgentFee.findOne({ agent: agentObjectId }).sort({
-      createdAt: -1,
-    });
+  const fee = await AgentFee.create({
+    agent: agentObjectId,
 
-    if (!fee) fee = await this.createInitialFee(agentObjectId);
+    startDate: start.toDate(),
+    endDate: end.toDate(),
 
-    if (!fee.endDate) {
-      return {
-        isActive: false,
-        status: "inactive",
-        remainingDays: 0,
-      };
-    }
+    status: "active",
+    plan: "FREE_TRIAL",
 
-    const today = dayjs();
-    const expiry = dayjs(fee.endDate);
+    amountPaid: 0,
+    renewalCount: 0,
 
-    if (today.isAfter(expiry)) {
-      fee.status = "expired";
-      await fee.save();
-      await syncAgentFeeSnapshot(agentObjectId, fee);
+    notes: "Free trial – first registration (30 days)",
+  });
 
-      return {
-        isActive: false,
-        status: "expired",
-        remainingDays: 0,
-        expiresOn: expiry.format("YYYY-MM-DD"),
-        plan: fee.plan,
-      };
-    }
+  await syncAgentFeeSnapshot(agentObjectId, fee);
 
-    return {
-      isActive: true,
-      status: "active",
-      remainingDays: expiry.diff(today, "day"),
-      expiresOn: expiry.format("YYYY-MM-DD"),
-      plan: fee.plan,
-    };
-  }
+  return fee;
+}
 
   /**
    * ======================================================
