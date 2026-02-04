@@ -538,5 +538,4 @@ async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
     return { success: true };
   }
 } 
-module.exports = new PaymentService();     
- 
+module.exports = new PaymentService();
