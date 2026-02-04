@@ -1,4 +1,4 @@
-
+ 
 const mongoose = require("mongoose");
 
 const Loan = require("../models/Loan");
@@ -262,6 +262,202 @@ async payLoanFee(agentId, loanId, amountPaid) {
     success: true,
     message: "Ada yote imelipwa, mkopo umefutwa kikamilifu",
   };
+} 
+/**
+ * ======================================================
+ * AGENT ADJUSTS / SETTLES LOAN (MILLIONS-SCALE READY)
+ * ======================================================
+ */
+async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
+  // =========================
+  // 🛡️ INPUT VALIDATION
+  // =========================
+  if (!reason || reason.trim().length < 5) {
+    throw new Error("Sababu ya adjustment inahitajika (angalau herufi 5)");
+  }
+
+  if (!adjustAmount || isNaN(adjustAmount) || adjustAmount <= 0) {
+    throw new Error("Kiasi cha kupunguza si sahihi");
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // =========================
+    // 🔒 FETCH + LOCK LOAN
+    // =========================
+    const loan = await Loan.findOne(
+      { _id: loanId },
+      null,
+      { session }
+    );
+
+    if (!loan) throw new Error("Loan haipo");
+
+    if (String(loan.agent) !== String(agentId)) {
+      throw new Error("Huna ruhusa ya mkopo huu");
+    }
+
+    if (loan.status === "paid") {
+      throw new Error("Mkopo tayari umelipwa");
+    }
+
+    // =========================
+    // ⛔ IDEMPOTENCY / RACE GUARD
+    // =========================
+    if (
+      loan.lastAdjustmentAt &&
+      Date.now() - loan.lastAdjustmentAt.getTime() < 3000
+    ) {
+      throw new Error("Adjustment inaendelea, subiri kidogo");
+    }
+
+    // =========================
+    // 📊 LEDGER VALIDATION
+    // =========================
+    const principal = Number(loan.principalRemaining || 0);
+    const fees = Number(loan.feesRemaining || 0);
+    const penalties = Number(loan.penaltiesRemaining || 0);
+
+    const totalRemaining = principal + fees + penalties;
+
+    if (adjustAmount > totalRemaining) {
+      throw new Error("Kiasi cha kupunguza kinazidi deni lililopo");
+    }
+
+    // =========================
+    // 🔥 LEDGER ADJUSTMENT
+    // =========================
+    let remaining = adjustAmount;
+
+    let penaltiesReduced = 0;
+    let feesReduced = 0;
+    let principalReduced = 0;
+
+    if (penalties > 0 && remaining > 0) {
+      penaltiesReduced = Math.min(penalties, remaining);
+      loan.penaltiesRemaining -= penaltiesReduced;
+      remaining -= penaltiesReduced;
+    }
+
+    if (fees > 0 && remaining > 0) {
+      feesReduced = Math.min(fees, remaining);
+      loan.feesRemaining -= feesReduced;
+      remaining -= feesReduced;
+    }
+
+    if (principal > 0 && remaining > 0) {
+      principalReduced = Math.min(principal, remaining);
+      loan.principalRemaining -= principalReduced;
+      remaining -= principalReduced;
+    }
+
+    // =========================
+    // ✅ FINAL STATUS CHECK
+    // =========================
+    if (
+      loan.principalRemaining <= 0 &&
+      loan.feesRemaining <= 0 &&
+      loan.penaltiesRemaining <= 0
+    ) {
+      loan.status = "paid";
+      loan.paidAt = new Date();
+
+      await ControlNumber.updateMany(
+        { loan: loan._id, status: "active" },
+        { $set: { status: "paid", closedAt: new Date() } },
+        { session }
+      );
+    }
+
+    loan.lastAdjustmentAt = new Date();
+    await loan.save({ session });
+
+    // =========================
+    // 🧾 AUDIT LOG (IMMUTABLE)
+    // =========================
+    await AuditLog.create(
+      [{
+        action: "AGENT_LOAN_ADJUSTMENT",
+        actor: agentId,
+        actorRole: "agent",
+        loan: loan._id,
+        meta: {
+          adjustAmount,
+          breakdown: {
+            principal: principalReduced,
+            fees: feesReduced,
+            penalties: penaltiesReduced,
+          },
+          reason,
+        },
+        source: "MANUAL",
+      }],
+      { session }
+    );
+
+    // =========================
+    // 📊 PAYMENT RECORD (NON-CASH)
+    // =========================
+    await Payment.create(
+      [{
+        loan: loan._id,
+        customer: loan.customer,
+        controlNumber: null,
+        amountPaid: adjustAmount,
+        method: "adjustment",
+        status: "completed",
+        paymentType: "ADJUSTMENT",
+        reference: `ADJ-${loan._id}-${Date.now()}`,
+        appliedBreakdown: {
+          principal: principalReduced,
+          fees: feesReduced,
+          penalties: penaltiesReduced,
+        },
+        payout: {
+          agentAmount: 0,
+          companyAmount: 0,
+          mode: "NONE",
+        },
+        processedAt: new Date(),
+      }],
+      { session }
+    );
+
+    // =========================
+    // 📈 CREDIT HISTORY (ASYNC SAFE)
+    // =========================
+    await creditHistoryService.onLoanAdjusted(
+      {
+        loanId: loan._id,
+        agentId,
+        amount: adjustAmount,
+        breakdown: {
+          principal: principalReduced,
+          fees: feesReduced,
+          penalties: penaltiesReduced,
+        },
+        reason,
+      },
+      session
+    );
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      message:
+        loan.status === "paid"
+          ? "Deni limefungwa kikamilifu"
+          : "Deni limepunguzwa kwa mafanikio",
+    };
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
 }
 
   /**
@@ -341,7 +537,6 @@ async payLoanFee(agentId, loanId, amountPaid) {
 
     return { success: true };
   }
-}
-
+} 
 module.exports = new PaymentService();     
  
