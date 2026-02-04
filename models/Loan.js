@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -12,6 +12,13 @@ const loanSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+
+    // 🆕 ADD ONLY — anti double-adjust / race guard
+   lastAdjustmentAt: {
+      type: Date,
+      default: null,
+      index: true,
     },
 
     agent: {
@@ -153,5 +160,7 @@ loanSchema.index({ createdAt: -1 });
 
 // 🆕 ADD ONLY — helps overdue & automation queries
 loanSchema.index({ status: 1, dueDate: 1 });
+// 🆕 ADD ONLY — fast agent queries (millions scale)
+loanSchema.index({ agent: 1, status: 1 });
 
 module.exports = mongoose.model("Loan", loanSchema);
