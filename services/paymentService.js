@@ -392,7 +392,7 @@ async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
           },
           reason,
         },
-        source: "MANUAL",
+        source: "AGENT",
       }],
       { session }
     );
