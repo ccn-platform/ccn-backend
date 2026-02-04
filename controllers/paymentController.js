@@ -1,4 +1,4 @@
- 
+  
  const paymentService = require("../services/paymentService");
  const Agent = require("../models/Agent");
  const Loan = require("../models/Loan");
@@ -179,7 +179,77 @@ if (!["active", "overdue"].includes(loan.status)) {
     });
   }
 }
-  
+  /**
+ * ======================================================
+ * AGENT ADJUST / SETTLE LOAN (NO CUSTOMER PAYMENT)
+ * ======================================================
+ */
+async agentAdjustLoan(req, res) {
+  try {
+    const { loanId, adjustAmount, reason } = req.body;
+
+    // ===============================
+    // 🔐 AUTH: AGENT ONLY
+    // ===============================
+    if (req.user.role !== "agent") {
+      return res.status(403).json({
+        success: false,
+        message: "Huduma hii inaruhusiwa kwa wakala tu",
+      });
+    }
+
+    const agentId = req.user.agentId;
+    if (!agentId) {
+      return res.status(403).json({
+        success: false,
+        message: "Agent hajathibitishwa",
+      });
+    }
+
+    // ===============================
+    // 🛡️ INPUT VALIDATION
+    // ===============================
+    if (!loanId || !adjustAmount || Number(adjustAmount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "loanId na adjustAmount vinahitajika",
+      });
+    }
+
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Sababu ya adjustment inahitajika (angalau herufi 5)",
+      });
+    }
+
+    // ===============================
+    // 🔥 CALL SERVICE
+    // ===============================
+    const result = await paymentService.agentAdjustLoan({
+      agentId,
+      loanId,
+      adjustAmount: Number(adjustAmount),
+      reason,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+
+  } catch (error) {
+    console.error("❌ AGENT ADJUST LOAN ERROR:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Adjustment imeshindikana",
+    });
+  }
+}
+
+
   /**
    * ======================================================
    * PAYMENT CALLBACK (MOBILE MONEY / GATEWAY)
