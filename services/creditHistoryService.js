@@ -192,6 +192,35 @@ class CreditHistoryService {
       currentDebt: debt.totalDebt,
     };
   }
+  /**
+   * =========================================================
+   * 1️⃣4️⃣ HOOK — LOAN ADJUSTED (AGENT / ADMIN)
+   * =========================================================
+   */
+  async onLoanAdjusted(
+    { loanId, agentId, amount, breakdown, reason },
+    session = null
+  ) {
+    const loan = await Loan.findById(loanId);
+    if (!loan) return;
+
+    return this.recordEvent({
+      user: loan.customer,
+      loan: loanId,
+      amount,
+      eventType: "LOAN_ADJUSTED",
+      balanceBefore:
+        (loan.principalRemaining || 0) +
+        (loan.feesRemaining || 0) +
+        (loan.penaltiesRemaining || 0) +
+        amount,
+      balanceAfter:
+        (loan.principalRemaining || 0) +
+        (loan.feesRemaining || 0) +
+        (loan.penaltiesRemaining || 0),
+      description: `Loan adjusted by agent (${agentId}): ${reason}`,
+    });
+  }
 
   /**
    * =========================================================
