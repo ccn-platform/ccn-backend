@@ -4,11 +4,16 @@ const connectDB = async () => {
   try {
     mongoose.set("strictQuery", false);
 
-    // ⚠️ URI SAHIHI – HAKUNA "MONGO_URI_ATLAS=" HAPA
-    const mongoURI =
-      "mongodb+srv://app_user:Ibra987654321@commodity-credit-cluster0.jffgeq2.mongodb.net/ccn_database";
+    const mongoURI = process.env.MONGO_URI_ATLAS;
 
-    console.log("Mongo URI used:", mongoURI);
+    if (!mongoURI) {
+      throw new Error("❌ MONGO_URI_ATLAS haijawekwa kwenye env");
+    }
+
+    console.log(
+      "Mongo URI used:",
+      mongoURI.includes("mongodb+srv") ? "ATLAS" : "LOCAL"
+    );
 
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
