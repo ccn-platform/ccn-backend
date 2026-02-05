@@ -1,11 +1,12 @@
- 
+  
  
  const loanService = require("../services/loanService");
 const Loan = require("../models/Loan");
 const Agent = require("../models/Agent");
 const User = require("../models/User");
 const ControlNumber = require("../models/controlNumber"); // ✅ ADDED (SAFE)
- 
+ const PayoutAccount = require("../models/payoutAccount");
+
 class LoanController {
   /** =====================================================
    * 0️⃣ CUSTOMER → REQUEST LOAN (AGENT ID PRIMARY)
@@ -56,10 +57,18 @@ class LoanController {
     try {
       const customerId = req.user.userId || req.user.id || req.user._id;
 
-      const loans = await Loan.find({ customer: customerId })
-        .populate("agent", "businessName phone")
+       const loans = await Loan.find({ customer: customerId })
+         .populate({
+          path: "agent",
+          select: "businessName user",
+          populate: {
+            path: "user",
+            select: "phone fullName"
+         }
+       })
         .sort({ createdAt: -1 })
-        .lean();
+         .lean();
+
 
       const loanIds = loans.map(l => l._id);
 
@@ -72,10 +81,34 @@ class LoanController {
       controlNumbers.forEach(cn => {
         controlMap[String(cn.loan)] = cn.reference;
       });
+    // ==============================
+    // ⭐ PATA PAYOUT ACCOUNT ZA AGENT
+    // ==============================
+     const agentIds = loans
+       .map(l => l.agent?._id)
+       .filter(Boolean);
+
+    const payoutAccounts = await PayoutAccount.find({
+       agent: { $in: agentIds },
+       isPrimary: true,
+       isActive: true,
+      }).lean();
+
+      const payoutMap = {};
+       payoutAccounts.forEach(p => {
+       payoutMap[String(p.agent)] = p;
+     });
+
 
       const enrichedLoans = loans.map(loan => ({
         ...loan,
         controlNumber: controlMap[String(loan._id)] || null,
+         // 📱 agent phone
+        agentPhone: loan.agent?.user?.phone || null,
+
+        // 💰 payout account
+         payoutAccount: payoutMap[String(loan.agent?._id)] || null,
+
       }));
 
       return res.json({ loans: enrichedLoans });
@@ -393,4 +426,5 @@ async getCustomerDebts(req, res) {
 }
 
 module.exports = new LoanController();
+
 
