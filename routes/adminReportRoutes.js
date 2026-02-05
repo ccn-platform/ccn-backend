@@ -1,91 +1,43 @@
-const express = require("express");
+  const express = require("express");
 const router = express.Router();
 
-const ReportController = require("../controllers/reportController");
+const adminReportController = require("../controllers/adminReportController");
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
 
-// ===============================
-// DASHBOARD
-// ===============================
-router.get("/daily", auth, role("admin"), ReportController.dailyReport);
-router.get("/monthly", auth, role("admin"), ReportController.monthlyReport);
+/**
+ * BASE PATH tayari ni:
+ * /api/admin/reports
+ */
 
-// ===============================
-// USERS / CUSTOMERS
-// ===============================
-router.get("/users/stats", auth, role("admin"), ReportController.userStats);
-
+/**
+ * JSON REPORT
+ */
 router.get(
-  "/customers/:customerId/debt",
+  "/",
   auth,
   role("admin"),
-  ReportController.customerDebtReport
+  adminReportController.getEntityReport
 );
 
-// ===============================
-// REVENUE
-// ===============================
+/**
+ * PDF
+ */
 router.get(
-  "/revenue/range",
+  "/pdf",
   auth,
   role("admin"),
-  ReportController.revenueByDateRange
+  adminReportController.exportPdf
 );
 
+/**
+ * CSV
+ */
 router.get(
-  "/revenue/agents",
+  "/csv",
   auth,
   role("admin"),
-  ReportController.revenueByAgent
-);
-
-router.get(
-  "/revenue/top-agents",
-  auth,
-  role("admin"),
-  ReportController.topAgents
-);
-
-// ===============================
-// FEES (ADA)
-// ===============================
-router.get(
-  "/fees/daily",
-  auth,
-  role("admin"),
-  ReportController.dailyFeeRevenue
-);
-
-router.get(
-  "/fees/weekly",
-  auth,
-  role("admin"),
-  ReportController.weeklyFeeRevenue
-);
-
-router.get(
-  "/fees/monthly",
-  auth,
-  role("admin"),
-  ReportController.monthlyFeeRevenue
-);
-
-// ===============================
-// LOANS
-// ===============================
-router.get(
-  "/loans/risk",
-  auth,
-  role("admin"),
-  ReportController.loanRiskReport
-);
-
-router.get(
-  "/loans/performance",
-  auth,
-  role("admin"),
-  ReportController.loanPerformance
+  adminReportController.exportCsv
 );
 
 module.exports = router;
