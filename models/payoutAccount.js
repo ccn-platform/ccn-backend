@@ -1,4 +1,4 @@
- // models/PayoutAccount.js
+  // models/PayoutAccount.js
 
 const mongoose = require("mongoose");
 
@@ -144,7 +144,6 @@ PayoutAccountSchema.index(
   { background: true }
 );
 
-module.exports = mongoose.model(
-  "PayoutAccount",
-  PayoutAccountSchema
-);
+ module.exports =
+  mongoose.models.PayoutAccount ||
+  mongoose.model("PayoutAccount", PayoutAccountSchema);
