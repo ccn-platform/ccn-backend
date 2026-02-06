@@ -1,7 +1,8 @@
- // controllers/userController.js
+  // controllers/userController.js
 
 const userService = require("../services/userService");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADDED
+const Loan = require("../models/Loan");
 
 class UserController {
   /**
@@ -39,22 +40,71 @@ class UserController {
       res.status(500).json({ success: false, message: error.message });
     }
   }
-
+ 
   /**
-   * 3️⃣ UPDATE USER (Profile Edit)
-   */
-  async update(req, res) {
-    try {
-      if (req.body.phone) {
-        req.body.phone = normalizePhone(req.body.phone);
-      }
-
-      const updated = await userService.updateUser(req.params.id, req.body);
-      res.json({ success: true, user: updated });
-    } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+ * 3️⃣ UPDATE USER (Profile Edit)
+ */
+async update(req, res) {
+  try {
+    if (req.body.phone) {
+      req.body.phone = normalizePhone(req.body.phone);
     }
+
+   const userId = req.params.id;
+
+// 🔐 customer asibadilishe mwingine
+if (
+  req.user.role === "customer" &&
+  String(req.user.userId) !== String(userId)
+) {
+  return res.status(403).json({
+    success: false,
+    message: "Unauthorized",
+  });
+}
+
+
+    // ============================
+    // GET USER
+    // ============================
+    const user = await userService.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ============================
+    // 🔴 CUSTOMER RULE
+    // ============================
+    if (user.role === "customer") {
+      const hasDebt = await Loan.findOne({
+        customer: user._id,
+        status: { $in: ["active", "overdue"] },
+      });
+
+      if (hasDebt) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Una deni linaloendelea. Maliza kwanza ndipo uedit profile.",
+        });
+      }
+    }
+
+    // ============================
+    // UPDATE
+    // ============================
+    const updated = await userService.updateUser(userId, req.body);
+
+    res.json({ success: true, user: updated });
+
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
+}
 
   /**
    * 4️⃣ CHANGE PIN (Customer Only)
