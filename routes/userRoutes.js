@@ -1,4 +1,4 @@
- // routes/userRoutes.js
+  // routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
@@ -71,10 +71,10 @@ router.get(
 // =======================
 // 3️⃣ UPDATE USER
 // =======================
-router.put(
+ router.put(
   "/:id",
   auth,
-  roles("admin", "customer"),
+  roles("admin", "customer", "agent"),
   rateLimiter,
   normalizePhoneMiddleware,
   userController.update
