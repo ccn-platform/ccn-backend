@@ -97,6 +97,9 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 // =====================================================
 app.use("/api/ussd", require("./routes/ussdRoutes"));
 
+const supportRoutes = require("./routes/supportRoutes");
+
+app.use("/support", supportRoutes);
 // =====================================================
 // 4️⃣ HEALTH CHECK
 // =====================================================
@@ -129,4 +132,5 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
 
