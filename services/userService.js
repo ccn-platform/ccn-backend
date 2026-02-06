@@ -1,4 +1,4 @@
- // services/userService.js
+  // services/userService.js
 
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
@@ -45,20 +45,21 @@ class UserService {
 
     return user;
   }
+/**
+ * ======================================================
+ * 2️⃣ Get User by ID
+ * ======================================================
+ */
+async getUserById(userId) {
+  const user = await User.findById(userId)
+    .populate("businessCategory"); // kama ipo
 
-  /**
-   * ======================================================
-   * 2️⃣ Get User by ID
-   * ======================================================
-   */
-  async getUserById(userId) {
-    const user = await User.findById(userId)
-      .populate("merchantData")
-      .populate("businessCategory");
+  if (!user) throw new Error("User not found.");
+  return user;
+}
 
-    if (!user) throw new Error("User not found.");
-    return user;
-  }
+  
+
 
   /**
    * ======================================================
