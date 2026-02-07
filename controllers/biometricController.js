@@ -1,4 +1,4 @@
- 
+  
 const biometricService = require("../services/biometricService");
 
 class BiometricController {
