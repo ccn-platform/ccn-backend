@@ -1,4 +1,4 @@
- const bcrypt = require("bcryptjs");
+  const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 
@@ -63,60 +63,92 @@ class AuthService {
    * - biometric handled separately (SAFE)
    */
   async registerCustomer(data) {
-    let { fullName, phone, pin, nationalId, biometricId } = data;
+  let { fullName, phone, pin, nationalId, biometricId } = data;
 
-    phone = normalizePhone(phone);
+  phone = normalizePhone(phone);
 
-    this.validatePhone(phone);
-    this.validatePin(pin);
+  this.validatePhone(phone);
+  this.validatePin(pin);
 
-    // 1️⃣ PHONE DUPLICATE
-    const existing = await User.findOne({ phone });
-    if (existing) {
-      throw new Error("Namba ya simu tayari imesajiliwa.");
-    }
-
-    // 2️⃣ NIDA DUPLICATE
-    if (nationalId) {
-      const nidaExists = await User.findOne({ nationalId });
-      if (nidaExists) {
-        throw new Error("NIDA hii tayari imetumika.");
-      }
-    }
-
-    // 3️⃣ CREATE CUSTOMER USER
-    const hashedPin = await bcrypt.hash(pin, 10);
-    const customerId = idGenerator.generateCustomerID();
-
-    const user = await User.create({
-      fullName,
-      phone,
-      pin: hashedPin,
-      nationalId: nationalId || null,
-      role: "customer",
-      systemId: customerId,
-      loginAttempts: 0,
-      lastLogin: null,
-      blockedUntil: null,
-    });
-
-    await Customer.create({
-      user: user._id,
-      customerId,
-    });
-
-    // --------------------------------------------------
-    // 🆕 SAFE ADD — LINK FACE BIOMETRIC (IF EXISTS)
-    // --------------------------------------------------
-    if (biometricId) {
-      await FaceBiometric.findByIdAndUpdate(biometricId, {
-        userId: user._id,
-      });
-    }
-
-    const tokens = this.generateTokens(user);
-    return { user, ...tokens };
+  // ===============================
+  // 1️⃣ PHONE DUPLICATE
+  // ===============================
+  const phoneExists = await User.findOne({ phone });
+  if (phoneExists) {
+    throw new Error("no tayari una account huwezi kujisajili mara mbili.");
   }
+
+  // ===============================
+  // 2️⃣ NIDA DUPLICATE
+  // ===============================
+  if (nationalId) {
+    const nidaExists = await User.findOne({ nationalId });
+    if (nidaExists) {
+      throw new Error("N tayari una account huwezi kujisajili mara mbili.");
+    }
+  }
+
+  // ===============================
+  // 3️⃣ FACE DUPLICATE
+  // ===============================
+  if (biometricId) {
+    const biometric = await FaceBiometric.findById(biometricId);
+
+    if (!biometric) {
+      throw new Error("Biometric session invalid.");
+    }
+
+    if (biometric.userId) {
+      throw new Error("Face hii tayari ina account.");
+    }
+  }
+
+  // ===============================
+  // 4️⃣ CREATE USER
+  // ===============================
+  const hashedPin = await bcrypt.hash(pin, 10);
+  const customerId = idGenerator.generateCustomerID();
+
+  const user = await User.create({
+    fullName,
+    phone,
+    pin: hashedPin,
+    nationalId: nationalId || null,
+    role: "customer",
+    systemId: customerId,
+  });
+
+  await Customer.create({
+    user: user._id,
+    customerId,
+  });
+
+  // ===============================
+  // 5️⃣ ATTACH FACE
+  // ===============================
+  if (biometricId) {
+    const biometricService = require("./biometricService");
+
+    const biometric = await FaceBiometric
+     .findById(biometricId)
+     .select("+faceImage");
+
+
+    if (!biometric || !biometric.faceImage) {
+       throw new Error("Biometric image missing");
+      }
+
+    await biometricService.attachBiometricToUser({
+      biometricId,
+      userId: user._id,
+      imageBase64: biometric.faceImage,   // ⭐ muhimu
+    });
+  }
+
+  const tokens = this.generateTokens(user);
+  return { user, ...tokens };
+}
+
 
   /**
    * ======================================================
