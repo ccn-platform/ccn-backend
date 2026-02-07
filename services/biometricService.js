@@ -1,80 +1,106 @@
- const crypto = require("crypto");
-const FaceBiometric = require("../models/FaceBiometric");
-const { compareFaces } = require("../utils/faceRecognition");
+  const FaceBiometric = require("../models/FaceBiometric");
+const crypto = require("crypto");
+const {
+  SearchFacesByImageCommand,
+  IndexFacesCommand,
+  CreateCollectionCommand,
+} = require("@aws-sdk/client-rekognition");
 
+const client = require("./awsClient");
+
+const COLLECTION_ID = "ccn-users";
 const BIOMETRIC_EXPIRY_MINUTES = 10;
 
-class BiometricService {
-  /**
-   * ======================================================
-   * VERIFY FACE (PRE-REGISTRATION)
-   * ======================================================
-   */
-  async verifyCustomerFace(imageBase64) {
-    if (!imageBase64) {
-      throw new Error("Face image is required");
+// Create AWS collection once
+async function ensureCollection() {
+  try {
+    await client.send(
+      new CreateCollectionCommand({
+        CollectionId: COLLECTION_ID,
+      })
+    );
+    console.log("AWS face collection ready");
+  } catch (err) {
+    if (err.name !== "ResourceAlreadyExistsException") {
+      console.error(err);
     }
+  }
+}
 
-    // 1️⃣ Run face recognition (AI)
-    const match = await compareFaces(imageBase64);
+class BiometricService {
+  async verifyCustomerFace(imageBase64) {
+    if (!imageBase64) throw new Error("Face image required");
 
-    if (!match.allowed) {
+   const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+   const buffer = Buffer.from(cleanImage, "base64");
+
+
+    // 🔎 CHECK DUPLICATE FACE AWS
+    const search = await client.send(
+      new SearchFacesByImageCommand({
+        CollectionId: COLLECTION_ID,
+        Image: { Bytes: buffer },
+       FaceMatchThreshold: Number(process.env.FACE_MATCH_THRESHOLD) || 90,
+
+        MaxFaces: 1,
+      })
+    );
+
+    if (search.FaceMatches.length > 0) {
       return {
         allowed: false,
-        reason: match.reason || "Face mismatch",
+        reason: "Tayari una account, huwezi kujisajili mara mbili.",
       };
     }
 
-    // 2️⃣ Generate unique biometric hash
+
+    // temporary biometric record
     const faceHash = crypto
       .createHash("sha256")
-      .update(imageBase64)
+      .update(cleanImage)
       .digest("hex");
 
-    // 3️⃣ Prevent duplicate registration
-    const exists = await FaceBiometric.findOne({ faceHash });
-    if (exists) {
-      return {
-        allowed: false,
-        reason: "Face already registered",
-      };
-    }
-
-    // 4️⃣ Save temporary biometric record
     const biometric = await FaceBiometric.create({
       faceHash,
+      faceImage: cleanImage,
       status: "pending",
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-    });
+      expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
+   });
 
-    return {
-      allowed: true,
-      biometricId: biometric._id,
-    };
+    return { allowed: true, biometricId: biometric._id };
   }
 
-  /**
-   * ======================================================
-   * LINK BIOMETRIC TO USER (AFTER REGISTRATION)
-   * ======================================================
-   */
-  async attachBiometricToUser({ biometricId, userId }) {
+  async attachBiometricToUser({ biometricId, userId, imageBase64 }) {
     const biometric = await FaceBiometric.findById(biometricId);
+    if (!biometric) throw new Error("Biometric not found");
+   
+    if (!imageBase64) {
+    throw new Error("Face image missing");
+  }
 
-    if (!biometric) {
-      throw new Error("Biometric record not found");
-    }
+   const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+   const buffer = Buffer.from(cleanImage, "base64");
 
-    if (biometric.expiresAt < new Date()) {
-      throw new Error("Biometric session expired");
-    }
+
+    // SAVE FACE AWS
+    await client.send(
+      new IndexFacesCommand({
+        CollectionId: COLLECTION_ID,
+        Image: { Bytes: buffer },
+        ExternalImageId: userId.toString(),
+      })
+    );
 
     biometric.userId = userId;
     biometric.status = "linked";
+    // 🔴 MUHIMU SANA → FUTA PICHA BAADA YA KUTUMA AWS
+    biometric.faceImage = null;
     await biometric.save();
 
     return true;
   }
 }
 
-module.exports = new BiometricService();
+const biometricService = new BiometricService();
+module.exports = biometricService;
+module.exports.ensureCollection = ensureCollection;
