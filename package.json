@@ -11,6 +11,7 @@
   "author": "Ibra Hassan",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.985.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "africastalking": "^0.7.8",
     "axios": "^1.13.2",
