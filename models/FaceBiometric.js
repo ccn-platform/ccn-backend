@@ -1,17 +1,17 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const FaceBiometricSchema = new mongoose.Schema(
   {
-    // 🔗 User link (after successful registration)
+    // 🔗 Link to user after registration
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       unique: true,
-      sparse: true, // allows null before linking
+      sparse: true,
       index: true,
     },
 
-    // 🔐 Hash ya uso (immutable identity)
+    // 🔐 Unique face hash
     faceHash: {
       type: String,
       required: true,
@@ -19,23 +19,29 @@ const FaceBiometricSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🧠 Face vector (for similarity check)
-    // Stored but not returned in queries
+    // 🖼️ TEMP FACE IMAGE (only during registration)
+    faceImage: {
+      type: String,
+      required: false,
+      select: false, // haitarudi kwenye query
+    },
+
+    // 🧠 optional future
     faceVector: {
       type: [Number],
-      required: true,
+      required: false,
       select: false,
     },
 
-    // 🔍 Liveness confidence score
+    // 🔍 optional
     livenessScore: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
       max: 1,
     },
 
-    // 🟡 Lifecycle state
+    // 🟡 lifecycle
     status: {
       type: String,
       enum: ["pending", "linked"],
@@ -43,21 +49,15 @@ const FaceBiometricSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ⏳ Auto-delete unlinked biometrics
+    // ⏳ auto delete pending
     expiresAt: {
       type: Date,
       index: { expireAfterSeconds: 0 },
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// 🔒 Ensure only one biometric per user
 FaceBiometricSchema.index({ userId: 1 }, { unique: true, sparse: true });
-
-// 🔍 Faster search by faceHash
-FaceBiometricSchema.index({ faceHash: 1 });
 
 module.exports = mongoose.model("FaceBiometric", FaceBiometricSchema);
