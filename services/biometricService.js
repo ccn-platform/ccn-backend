@@ -4,6 +4,7 @@ const {
   SearchFacesByImageCommand,
   IndexFacesCommand,
   CreateCollectionCommand,
+  DetectFacesCommand   // ⭐ ADD HII
 } = require("@aws-sdk/client-rekognition");
 
 const client = require("./awsClient");
@@ -31,8 +32,57 @@ class BiometricService {
   async verifyCustomerFace(imageBase64) {
     if (!imageBase64) throw new Error("Face image required");
 
-   const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-   const buffer = Buffer.from(cleanImage, "base64");
+ const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+const buffer = Buffer.from(cleanImage, "base64");
+
+// =======================================
+// 🧠 AGE DETECTION
+// =======================================
+let ageLow = null;
+let ageHigh = null;
+
+try {
+  const detect = await client.send(
+    new DetectFacesCommand({
+      Image: { Bytes: buffer },
+      Attributes: ["DEFAULT"],
+    })
+  );
+
+  if (!detect.FaceDetails.length) {
+    return {
+      allowed: false,
+      reason: "Face haijaonekana vizuri, jaribu tena.",
+    };
+  }
+
+  ageLow = detect.FaceDetails[0].AgeRange.Low;
+  ageHigh = detect.FaceDetails[0].AgeRange.High;
+
+  // mtoto kabisa
+  if (ageHigh < 18) {
+    return {
+      allowed: false,
+      reason: "Lazima uwe na miaka 18+ kujiunga.",
+    };
+  }
+
+  // doubtful
+  if (ageLow < 18 && ageHigh >= 18) {
+    return {
+      allowed: false,
+      reason: "Tafadhali thibitisha umri kwa NIDA.",
+    };
+  }
+
+} catch (err) {
+  console.error("AGE DETECTION ERROR:", err);
+
+  return {
+    allowed: false,
+    reason: "Imeshindikana kuthibitisha uso, jaribu tena.",
+  };
+}
 
 
     // 🔎 CHECK DUPLICATE FACE AWS
