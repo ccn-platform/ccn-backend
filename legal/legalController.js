@@ -53,50 +53,125 @@ class LegalController {
     });
   }
 
-  // ================================
-  // CUSTOMER TERMS
-  // ================================
-  static getCustomerTerms(req, res) {
-    const filePath = path.join(__dirname, "terms.customer.md");
-    const content = fs.readFileSync(filePath, "utf8");
+   static getCustomerTerms(req, res) {
+  const filePath = path.join(__dirname, "terms.customer.md");
+  const content = fs.readFileSync(filePath, "utf8");
 
-    res.json({
-      type: "terms_customer",
-      version: versions.terms.customer.version,
-      lastUpdated: versions.terms.customer.lastUpdated,
-      content,
-    });
+  const acceptHeader = req.headers.accept || "";
+
+  if (acceptHeader.includes("text/html")) {
+    return res.send(`
+      <html>
+        <head>
+          <title>Customer Terms</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            body {
+              font-family: Arial;
+              padding: 40px;
+              max-width: 900px;
+              margin: auto;
+              line-height: 1.7;
+            }
+            pre { white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <pre>${content}</pre>
+        </body>
+      </html>
+    `);
   }
 
-  // ================================
-  // AGENT TERMS
-  // ================================
-  static getAgentTerms(req, res) {
-    const filePath = path.join(__dirname, "terms.agent.md");
-    const content = fs.readFileSync(filePath, "utf8");
+  res.json({
+    type: "terms_customer",
+    version: versions.terms.customer.version,
+    lastUpdated: versions.terms.customer.lastUpdated,
+    content,
+  });
+}
 
-    res.json({
-      type: "terms_agent",
-      version: versions.terms.agent.version,
-      lastUpdated: versions.terms.agent.lastUpdated,
-      content,
-    });
+
+   static getAgentTerms(req, res) {
+  const filePath = path.join(__dirname, "terms.agent.md");
+  const content = fs.readFileSync(filePath, "utf8");
+
+  const acceptHeader = req.headers.accept || "";
+
+  if (acceptHeader.includes("text/html")) {
+    return res.send(`
+      <html>
+        <head>
+          <title>Agent Terms</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            body {
+              font-family: Arial;
+              padding: 40px;
+              max-width: 900px;
+              margin: auto;
+              line-height: 1.7;
+            }
+            pre { white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <pre>${content}</pre>
+        </body>
+      </html>
+    `);
   }
+
+  res.json({
+    type: "terms_agent",
+    version: versions.terms.agent.version,
+    lastUpdated: versions.terms.agent.lastUpdated,
+    content,
+  });
+}
+
 
   // ================================
   // BIOMETRIC CONSENT
   // ================================
-  static getBiometricConsent(req, res) {
-    const filePath = path.join(__dirname, "biometric.consent.md");
-    const content = fs.readFileSync(filePath, "utf8");
+ static getBiometricConsent(req, res) {
+  const filePath = path.join(__dirname, "biometric.consent.md");
+  const content = fs.readFileSync(filePath, "utf8");
 
-    res.json({
-      type: "biometric_consent",
-      version: versions.biometricConsent.version,
-      lastUpdated: versions.biometricConsent.lastUpdated,
-      content,
-    });
+  const acceptHeader = req.headers.accept || "";
+
+  if (acceptHeader.includes("text/html")) {
+    return res.send(`
+      <html>
+        <head>
+          <title>Biometric Consent</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            body {
+              font-family: Arial;
+              padding: 40px;
+              max-width: 900px;
+              margin: auto;
+              line-height: 1.7;
+            }
+            pre { white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <pre>${content}</pre>
+        </body>
+      </html>
+    `);
   }
+
+  res.json({
+    type: "biometric_consent",
+    version: versions.biometricConsent.version,
+    lastUpdated: versions.biometricConsent.lastUpdated,
+    content,
+  });
+}
+
 }
 
 module.exports = LegalController;
