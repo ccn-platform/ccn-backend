@@ -1,16 +1,50 @@
- const fs = require("fs");
+  const fs = require("fs");
 const path = require("path");
-const versions = require("./legalVersion"); // 🆕 ADD ONLY
+const versions = require("./legalVersion");
 
 class LegalController {
-  static getPrivacy(req, res) {
-    const filePath = path.join(
-      __dirname,
-      "privacy.policy.customer.md"
-    );
 
+  // ================================
+  // PRIVACY POLICY
+  // ================================
+  static getPrivacy(req, res) {
+    const filePath = path.join(__dirname, "privacy.policy.customer.md");
     const content = fs.readFileSync(filePath, "utf8");
 
+    const acceptHeader = req.headers.accept || "";
+
+    // 🌍 Kama imefunguliwa na browser
+    if (acceptHeader.includes("text/html")) {
+      return res.send(`
+        <html>
+          <head>
+            <title>Privacy Policy</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                padding: 40px;
+                max-width: 900px;
+                margin: auto;
+                line-height: 1.7;
+              }
+              h1,h2,h3 {
+                color: #111;
+              }
+              pre {
+                white-space: pre-wrap;
+                font-family: Arial, sans-serif;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${content}</pre>
+          </body>
+        </html>
+      `);
+    }
+
+    // 📱 Default → app
     res.json({
       type: "privacy",
       version: versions.privacy.version,
@@ -19,6 +53,9 @@ class LegalController {
     });
   }
 
+  // ================================
+  // CUSTOMER TERMS
+  // ================================
   static getCustomerTerms(req, res) {
     const filePath = path.join(__dirname, "terms.customer.md");
     const content = fs.readFileSync(filePath, "utf8");
@@ -31,6 +68,9 @@ class LegalController {
     });
   }
 
+  // ================================
+  // AGENT TERMS
+  // ================================
   static getAgentTerms(req, res) {
     const filePath = path.join(__dirname, "terms.agent.md");
     const content = fs.readFileSync(filePath, "utf8");
@@ -43,6 +83,9 @@ class LegalController {
     });
   }
 
+  // ================================
+  // BIOMETRIC CONSENT
+  // ================================
   static getBiometricConsent(req, res) {
     const filePath = path.join(__dirname, "biometric.consent.md");
     const content = fs.readFileSync(filePath, "utf8");
