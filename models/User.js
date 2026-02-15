@@ -1,3 +1,6 @@
+  
+
+ 
  const mongoose = require("mongoose");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADD THIS
 
@@ -10,9 +13,8 @@ const UserSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
-    },
+     },
+
 
     phoneNormalized: {
       type: String,
@@ -31,6 +33,9 @@ const UserSchema = new mongoose.Schema(
       enum: ["customer", "agent", "admin"],
       required: true,
     },
+
+    loginAttempts: { type: Number, default: 0 },
+    blockedUntil: { type: Date, default: null },
 
         /**
      * ======================================================
@@ -87,8 +92,9 @@ const UserSchema = new mongoose.Schema(
  * ⭐ AUTO NORMALIZE PHONE BEFORE SAVE
  * ======================================================
  */
-UserSchema.pre("save", function (next) {
-  if (this.phone && !this.phoneNormalized) {
+ UserSchema.pre("save", function (next) {
+  // normalize phone only if changed
+  if (this.isModified("phone")) {
     try {
       this.phoneNormalized = normalizePhone(this.phone);
     } catch (err) {
@@ -96,7 +102,7 @@ UserSchema.pre("save", function (next) {
     }
   }
 
-  // ⭐ SYNC TOKENS (SAFE)
+  // sync push tokens
   if (this.pushToken && !this.expoPushToken) {
     this.expoPushToken = this.pushToken;
   }
@@ -107,5 +113,14 @@ UserSchema.pre("save", function (next) {
 
   next();
 });
+
+
+   
+ // ===============================
+// 📊 INDEXES FOR PRODUCTION
+// ===============================
+UserSchema.index({ phone: 1 });
+UserSchema.index({ phoneNormalized: 1 });
+UserSchema.index({ nationalId: 1 });
 
 module.exports = mongoose.model("User", UserSchema);
