@@ -4,6 +4,7 @@ const router = express.Router();
 
 const authController = require("../controllers/authController");
 const auth = require("../middleware/authMiddleware");
+const registerGuard = require("../middleware/registerGuard");
 const normalizePhone = require("../utils/normalizePhone");
 
 /**
@@ -28,7 +29,7 @@ router.use((req, res, next) => {
 // ===============================
 // CUSTOMER REGISTER
 // ===============================
-router.post("/register/customer", authController.registerCustomer);
+ router.post("/register/customer", registerGuard, authController.registerCustomer);
 
 // ===============================
 // AGENT REGISTER
