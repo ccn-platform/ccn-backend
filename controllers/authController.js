@@ -29,8 +29,51 @@ class AuthController {
           message: "Invalid biometricId format",
         });
       }
+ // ===============================
+// NIDA GUARD START
+// ===============================
+const guard = req.registerGuard || null;
+
+if (req.body.nationalId && guard) {
+
+  // 🚫 CHECK IF BLOCKED
+  if (guard.blockedUntil && new Date() < guard.blockedUntil) {
+    return res.status(429).json({
+      success: false,
+      message: "Umezuiwa kwa saa 24. Jaribu tena kesho.",
+    });
+  }
+
+  const nidaRegex = /^\d{4}-\d{5}-\d{5}-\d{2}$/;
+
+  if (!nidaRegex.test(req.body.nationalId)) {
+    guard.attempts += 1;
+
+    if (guard.attempts >= 2) {
+      guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+
+    await guard.save();
+
+    return res.status(400).json({
+      success: false,
+      message: "NIDA si sahihi.",
+    });
+  }
+}
+
 
       const result = await authService.registerCustomer(req.body);
+// ===============================
+// RESET GUARD IF SUCCESS
+// ===============================
+if (req.registerGuard) {
+  const guard = req.registerGuard;
+  guard.attempts = 0;
+  guard.blockedUntil = null;
+  await guard.save();
+}
+
 
       return res.status(201).json({
         success: true,
