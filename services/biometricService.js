@@ -1,4 +1,6 @@
   const FaceBiometric = require("../models/FaceBiometric");
+const User = require("../models/User");
+
 const crypto = require("crypto");
 const {
   SearchFacesByImageCommand,
