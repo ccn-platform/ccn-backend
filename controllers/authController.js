@@ -7,7 +7,7 @@ const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
   if (!nida) throw new Error("NIDA required");
 
   const digits = String(nida).replace(/-/g, "");
-
+   
   // lazima iwe digits tu
   if (!/^\d+$/.test(digits)) {
     throw new Error("NIDA si sahihi");
@@ -17,7 +17,6 @@ const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
   if (!(digits.startsWith("19") || digits.startsWith("20"))) {
     throw new Error("NIDA lazima ianze na 19 au 20");
   }
-
   // =========================
   // OLD NIDA → 16 digits
   // =========================
