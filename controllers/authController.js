@@ -2,6 +2,41 @@
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
 
+// 🔥 ADD HAPA JUU YA FILE
+ function normalizeNida(nida) {
+  if (!nida) throw new Error("NIDA required");
+
+  const digits = String(nida).replace(/-/g, "");
+
+  // lazima iwe digits tu
+  if (!/^\d+$/.test(digits)) {
+    throw new Error("NIDA si sahihi");
+  }
+
+  // lazima ianze na 19 au 20
+  if (!(digits.startsWith("19") || digits.startsWith("20"))) {
+    throw new Error("NIDA lazima ianze na 19 au 20");
+  }
+
+  // =========================
+  // OLD NIDA → 16 digits
+  // =========================
+  if (digits.length === 16) {
+    return `${digits.slice(0,4)}-${digits.slice(4,9)}-${digits.slice(9,14)}-${digits.slice(14)}`;
+  }
+
+  // =========================
+  // NEW NIDA → 20 digits
+  // =========================
+  if (digits.length === 20) {
+    return `${digits.slice(0,8)}-${digits.slice(8,13)}-${digits.slice(13,18)}-${digits.slice(18)}`;
+  }
+
+  // nyingine zote = kosa
+  throw new Error("NIDA si  sahihi");
+}
+
+
 class AuthController {
   /**
    * ======================================================
@@ -32,32 +67,38 @@ class AuthController {
  // ===============================
 // NIDA GUARD START
 // ===============================
+ // ===============================
+// NIDA GUARD START
+// ===============================
 const guard = req.registerGuard || null;
 
-if (req.body.nationalId && guard) {
+if (req.body.nationalId) {
 
-  // 🚫 CHECK IF BLOCKED
-  if (guard.blockedUntil && new Date() < guard.blockedUntil) {
-    return res.status(429).json({
-      success: false,
-      message: "Umezuiwa kwa saa 24. Jaribu tena kesho.",
-    });
-  }
+  try {
+    // normalize first
+    req.body.nationalId = normalizeNida(req.body.nationalId);
+  } catch (e) {
+    if (guard) {
+      guard.attempts += 1;
 
-  const nidaRegex = /^\d{4}-\d{5}-\d{5}-\d{2}$/;
+      if (guard.attempts >= 2) {
+        guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      }
 
-  if (!nidaRegex.test(req.body.nationalId)) {
-    guard.attempts += 1;
-
-    if (guard.attempts >= 2) {
-      guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await guard.save();
     }
-
-    await guard.save();
 
     return res.status(400).json({
       success: false,
-      message: "NIDA si sahihi.",
+      message: "NIDA si sahihi",
+    });
+  }
+
+  // 🚫 block check
+  if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
+    return res.status(429).json({
+      success: false,
+      message: "Umezuiwa kwa saa 24. Jaribu kesho.",
     });
   }
 }
