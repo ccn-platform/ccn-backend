@@ -1,5 +1,6 @@
   const authService = require("../services/authService");
-const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
+const User = require("../models/User");
+ const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
 
 // 🔥 ADD HAPA JUU YA FILE
@@ -7,7 +8,7 @@ const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
   if (!nida) throw new Error("NIDA required");
 
   const digits = String(nida).replace(/-/g, "");
-   
+
   // lazima iwe digits tu
   if (!/^\d+$/.test(digits)) {
     throw new Error("NIDA si sahihi");
@@ -17,6 +18,7 @@ const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
   if (!(digits.startsWith("19") || digits.startsWith("20"))) {
     throw new Error("NIDA lazima ianze na 19 au 20");
   }
+
   // =========================
   // OLD NIDA → 16 digits
   // =========================
@@ -51,6 +53,74 @@ class AuthController {
         req.body.phone = normalizePhone(req.body.phone);
       }
 
+      // ===============================
+// 🚨 FRAUD CONTROL → FACE kutumia phone iliyopo
+// ===============================
+ const guard = req.registerGuard || null;
+ // 🚫 CHECK kama tayari blocked
+if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
+  return res.status(429).json({
+    success: false,
+    message: "Umezuiwa kwa saa 24. Jaribu tena kesho.",
+  });
+}
+
+if (req.body.biometricId && req.body.phone) {
+
+  const existingUser = await User.findOne({
+  phoneNormalized: req.body.phone
+});
+
+    
+
+  if (existingUser) {
+
+    // =========================================
+    // 🔴 CASE 1: phone ilishasajiliwa kwa NIDA
+    // =========================================
+    if (existingUser.nationalId) {
+
+      if (guard) {
+        guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await guard.save();
+      }
+
+      return res.status(429).json({
+        success: false,
+        message: "Namba hii tayari imesajiliwa kwa NIDA. Umezuiwa masaa 24.",
+      });
+    }
+
+    // =========================================
+    // 🟡 CASE 2: phone ilishasajiliwa kwa FACE
+    // =========================================
+    if (!existingUser.nationalId) {
+
+      if (guard) {
+        guard.attempts += 1;
+
+        // mara ya pili → block
+        if (guard.attempts >= 2) {
+          guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          await guard.save();
+
+          return res.status(429).json({
+            success: false,
+            message: "Jaribio la pili. Umezuiwa kwa masaa 24.",
+          });
+        }
+
+        await guard.save();
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "Namba tayari ipo kwenye mfumo. Jaribu mara moja tu.",
+      });
+    }
+  }
+}
+
       // -----------------------------
       // 🆕 SAFE GUARD: biometricId
       // -----------------------------
@@ -69,8 +139,7 @@ class AuthController {
  // ===============================
 // NIDA GUARD START
 // ===============================
-const guard = req.registerGuard || null;
-
+ 
 if (req.body.nationalId) {
 
   try {
@@ -104,16 +173,15 @@ if (req.body.nationalId) {
 
 
       const result = await authService.registerCustomer(req.body);
-// ===============================
-// RESET GUARD IF SUCCESS
-// ===============================
-if (req.registerGuard) {
-  const guard = req.registerGuard;
-  guard.attempts = 0;
-  guard.blockedUntil = null;
-  await guard.save();
-}
-
+ 
+    // ===============================
+    // RESET GUARD AFTER SUCCESS
+    // ===============================
+    if (guard) {
+       guard.attempts = 0;
+       guard.blockedUntil = null;
+       await guard.save();
+      }
 
       return res.status(201).json({
         success: true,
