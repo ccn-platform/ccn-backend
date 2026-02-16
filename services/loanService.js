@@ -1,4 +1,4 @@
-   const mongoose = require("mongoose");
+    const mongoose = require("mongoose");
 
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -308,6 +308,14 @@ if (!eligibility.allowed) {
 
   await loan.save();
   
+  await Revenue.create({
+  source: "LOAN_FEE",
+  totalFee: feeData.totalFee,   // ADA HALISI YA MKOPO
+  loan: loan._id,
+  agent: agentId,
+  customer: loan.customer,
+});
+
    await auditLogsService.log({
   action: "LOAN_APPROVED",
 
@@ -559,3 +567,4 @@ async function markOverdueLoans() {
 }
 
 module.exports = new LoanService();
+  
