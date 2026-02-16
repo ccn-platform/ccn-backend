@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const RevenueSchema = new mongoose.Schema(
   {
@@ -32,7 +32,7 @@ const RevenueSchema = new mongoose.Schema(
     source: {
       type: String,
       enum: [
-        "loan_fee",       // existing
+         
         "payment_charge", // existing
         "LOAN_FEE",       // ✅ new (your current usage)
         "PAYMENT",        // optional future
