@@ -179,18 +179,10 @@ if (!["active", "overdue"].includes(loan.status)) {
     });
   }
 }
-  /**
- * ======================================================
- * AGENT ADJUST / SETTLE LOAN (NO CUSTOMER PAYMENT)
- * ======================================================
- */
-async agentAdjustLoan(req, res) {
+   async agentAdjustLoan(req, res) { 
   try {
     const { loanId, adjustAmount, reason } = req.body;
 
-    // ===============================
-    // 🔐 AUTH: AGENT ONLY
-    // ===============================
     if (req.user.role !== "agent") {
       return res.status(403).json({
         success: false,
@@ -199,16 +191,7 @@ async agentAdjustLoan(req, res) {
     }
 
     const agentId = req.user.agentId;
-    if (!agentId) {
-      return res.status(403).json({
-        success: false,
-        message: "Agent hajathibitishwa",
-      });
-    }
 
-    // ===============================
-    // 🛡️ INPUT VALIDATION
-    // ===============================
     if (!loanId || !adjustAmount || Number(adjustAmount) <= 0) {
       return res.status(400).json({
         success: false,
@@ -219,18 +202,26 @@ async agentAdjustLoan(req, res) {
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
         success: false,
-        message: "Sababu ya adjustment inahitajika (angalau herufi 5)",
+        message: "Sababu ya adjustment inahitajika",
       });
     }
 
-    // ===============================
-    // 🔥 CALL SERVICE
-    // ===============================
+    // 🔥 fanya adjustment
     const result = await paymentService.agentAdjustLoan({
       agentId,
       loanId,
       adjustAmount: Number(adjustAmount),
       reason,
+    });
+
+    // ======================================================
+    // 🧾 SAVE REVENUE (SAHIHI)
+    // ======================================================
+    await Revenue.create({
+      source: "LOAN_FEE",      // 🔴 lazima iwe enum iliyopo
+      totalFee: Number(adjustAmount), // 🔴 si amount
+      loan: loanId,
+      agent: agentId,
     });
 
     return res.status(200).json({
@@ -248,7 +239,6 @@ async agentAdjustLoan(req, res) {
     });
   }
 }
-
 
   /**
    * ======================================================
