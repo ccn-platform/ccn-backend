@@ -3,7 +3,6 @@ const Agent = require("../models/Agent");
 const Loan = require("../models/Loan");
 const Revenue = require("../models/Revenue");
 
-
 /**
  * ======================================================
  * INTERNAL HELPER (SAFE + STRONG)
@@ -158,7 +157,8 @@ exports.getRiskReport = async (req, res) => {
         riskScore: "NO DATA",
       }
     );
-  } catch (err) {
+  }
+   catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
@@ -186,11 +186,11 @@ exports.getMyLoans = async (req, res) => {
   } catch (err) {
     console.error("getMyLoans error:", err);
     res.status(400).json({
-      message: "Imeshindikana kupata mikopo ya mfanya biashara",
+      message: "Imeshindikana kupata mikopo ya wakala",
     });
   }
 };
-// ======================================================
+ // ======================================================
 // 🧾 FEES LAST 30 DAYS (AGENT REPORT)
 // ======================================================
 exports.getFeesLast30Days = async (req, res) => {
@@ -203,14 +203,14 @@ exports.getFeesLast30Days = async (req, res) => {
     const result = await Revenue.aggregate([
       {
         $match: {
-          agentId: agentId, // BADILISHA kama ni agent:
+          agent: agentId,
           createdAt: { $gte: start },
         },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: "$amount" },
+          total: { $sum: "$totalFee" }, // 🔴 SAHIHI
         },
       },
     ]);
@@ -218,6 +218,7 @@ exports.getFeesLast30Days = async (req, res) => {
     res.json({
       total: result[0]?.total || 0,
     });
+
   } catch (err) {
     console.error("fees last 30 days error:", err);
     res.status(500).json({
@@ -225,3 +226,4 @@ exports.getFeesLast30Days = async (req, res) => {
     });
   }
 };
+ 
