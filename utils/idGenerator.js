@@ -1,4 +1,4 @@
- /**
+  /**
  * ===========================================
  *  ID GENERATOR HELPER
  *  - Customer IDs
@@ -7,7 +7,7 @@
  * ===========================================
  */
 
-const generateRandom = (length = 6) => {
+const generateRandom = (length = 10) => {
   let result = "";
   const chars = "0123456789";
   for (let i = 0; i < length; i++) {
@@ -21,7 +21,7 @@ const generateRandom = (length = 6) => {
  * Example: CUST-839201
  */
 function generateCustomerID() {
-  return `CUST-${generateRandom(6)}`;
+  return `CUST-${generateRandom(8)}`;
 }
 
 /**
@@ -29,7 +29,7 @@ function generateCustomerID() {
  * Example: AGT-193002
  */
 function generateAgentID() {
-  return `AGT-${generateRandom(6)}`;
+  return `AGT-${generateRandom(7)}`;
 }
 
 /**
