@@ -42,7 +42,7 @@ class AuthService {
         role: user.role,
       },
       JWT_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "30m" }
     );
 
     const refreshToken = jwt.sign(
