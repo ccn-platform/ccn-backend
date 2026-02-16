@@ -98,4 +98,13 @@ router.get(
   agentController.getMyRecentActivity
 );
 
+// 🧾 FEES LAST 30 DAYS
+router.get(
+  "/me/fees-last-30-days",
+  auth,
+  role("agent"),
+  ensureAgent,
+  agentController.getFeesLast30Days
+);
+
 module.exports = router;
