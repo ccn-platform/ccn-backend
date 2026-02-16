@@ -1,6 +1,7 @@
  const agentService = require("../services/agentService");
 const Agent = require("../models/Agent");
 const Loan = require("../models/Loan");
+const Revenue = require("../models/Revenue");
 
 
 /**
@@ -186,6 +187,41 @@ exports.getMyLoans = async (req, res) => {
     console.error("getMyLoans error:", err);
     res.status(400).json({
       message: "Imeshindikana kupata mikopo ya mfanya biashara",
+    });
+  }
+};
+// ======================================================
+// 🧾 FEES LAST 30 DAYS (AGENT REPORT)
+// ======================================================
+exports.getFeesLast30Days = async (req, res) => {
+  try {
+    const agentId = await requireAgentId(req);
+
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+
+    const result = await Revenue.aggregate([
+      {
+        $match: {
+          agentId: agentId, // BADILISHA kama ni agent:
+          createdAt: { $gte: start },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    res.json({
+      total: result[0]?.total || 0,
+    });
+  } catch (err) {
+    console.error("fees last 30 days error:", err);
+    res.status(500).json({
+      message: "Imeshindikana kupata jumla ya ada",
     });
   }
 };
