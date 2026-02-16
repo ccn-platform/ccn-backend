@@ -1,5 +1,4 @@
-  
- const paymentService = require("../services/paymentService");
+  const paymentService = require("../services/paymentService");
  const Agent = require("../models/Agent");
  const Loan = require("../models/Loan");
  const Revenue = require("../models/Revenue");
@@ -179,10 +178,18 @@ if (!["active", "overdue"].includes(loan.status)) {
     });
   }
 }
-   async agentAdjustLoan(req, res) { 
+  /**
+ * ======================================================
+ * AGENT ADJUST / SETTLE LOAN (NO CUSTOMER PAYMENT)
+ * ======================================================
+ */
+async agentAdjustLoan(req, res) {
   try {
     const { loanId, adjustAmount, reason } = req.body;
 
+    // ===============================
+    // 🔐 AUTH: AGENT ONLY
+    // ===============================
     if (req.user.role !== "agent") {
       return res.status(403).json({
         success: false,
@@ -191,7 +198,16 @@ if (!["active", "overdue"].includes(loan.status)) {
     }
 
     const agentId = req.user.agentId;
+    if (!agentId) {
+      return res.status(403).json({
+        success: false,
+        message: "Agent hajathibitishwa",
+      });
+    }
 
+    // ===============================
+    // 🛡️ INPUT VALIDATION
+    // ===============================
     if (!loanId || !adjustAmount || Number(adjustAmount) <= 0) {
       return res.status(400).json({
         success: false,
@@ -202,26 +218,18 @@ if (!["active", "overdue"].includes(loan.status)) {
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
         success: false,
-        message: "Sababu ya adjustment inahitajika",
+        message: "Sababu ya adjustment inahitajika (angalau herufi 5)",
       });
     }
 
-    // 🔥 fanya adjustment
+    // ===============================
+    // 🔥 CALL SERVICE
+    // ===============================
     const result = await paymentService.agentAdjustLoan({
       agentId,
       loanId,
       adjustAmount: Number(adjustAmount),
       reason,
-    });
-
-    // ======================================================
-    // 🧾 SAVE REVENUE (SAHIHI)
-    // ======================================================
-    await Revenue.create({
-      source: "LOAN_FEE",      // 🔴 lazima iwe enum iliyopo
-      totalFee: Number(adjustAmount), // 🔴 si amount
-      loan: loanId,
-      agent: agentId,
     });
 
     return res.status(200).json({
@@ -239,6 +247,7 @@ if (!["active", "overdue"].includes(loan.status)) {
     });
   }
 }
+
 
   /**
    * ======================================================
@@ -300,3 +309,4 @@ if (!["active", "overdue"].includes(loan.status)) {
 }
 
 module.exports = new PaymentController();    
+ 
