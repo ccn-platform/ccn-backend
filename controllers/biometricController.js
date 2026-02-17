@@ -20,7 +20,7 @@ class BiometricController {
       if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
         return res.status(429).json({
           success: false,
-          reason: "Umezuiwa kwa saa 24. Jaribu kesho. kumbuka hauruhusiwi kujisajili mara mbili",
+          message: "Umezuiwa kwa saa 24. Jaribu kesho. kumbuka hauruhusiwi kujisajili mara mbili",
         });
       }
 
@@ -57,7 +57,7 @@ class BiometricController {
 
             return res.status(429).json({
               success: false,
-              reason: " tayari umesha jisajili huruhusiwi kua na account mbili. Umezuiwa kwa masaa 24.",
+              message: " tayari umesha jisajili huruhusiwi kua na account mbili. Umezuiwa kwa masaa 24.",
             });
           }
 
@@ -65,17 +65,51 @@ class BiometricController {
         }
 
         return res.status(409).json({
-          success: false,
-          reason: "Face tayari ipo. kujisajili  ni mara moja tu.",
-        });
+        success: false,
+         message: "Face tayari ipo. kujisajili ni mara moja tu.",
+       });
+
       }
+     // ===============================
+  // OTHER KNOWN ERRORS
+  // ===============================
+  if (
+    error.code === "NO_FACE" ||
+    error.code === "UNDERAGE" ||
+    error.code === "AGE_UNCERTAIN" ||
+    error.code === "NO_IMAGE"
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+
 
       console.error("Biometric error:", error);
 
-      return res.status(500).json({
-        success: false,
-        message: error.message || "Biometric verification failed",
-      });
+let message =
+  error.message ||
+  error.code ||
+  "Face scan imeshindikana. Tafadhali jaribu tena.";
+
+// network timeout
+if (error.name === "TimeoutError") {
+  message = "Internet yako ni polepole. Jaribu tena.";
+}
+
+// network connection
+if (error.name === "NetworkingError") {
+  message = "Tatizo la network. Angalia internet.";
+}
+
+return res.status(500).json({
+  success: false,
+  message,
+});
+
+
     }
   }
 }
