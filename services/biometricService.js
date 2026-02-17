@@ -1,4 +1,4 @@
-  const FaceBiometric = require("../models/FaceBiometric");
+   const FaceBiometric = require("../models/FaceBiometric");
 const crypto = require("crypto");
 const {
   SearchFacesByImageCommand,
@@ -36,6 +36,8 @@ class BiometricService {
   // VERIFY FACE BEFORE REGISTRATION
   // ====================================================
   async verifyCustomerFace(imageBase64) {
+  try {
+
     if (!imageBase64) {
       const err = new Error("Face image required");
       err.code = "NO_IMAGE";
@@ -45,9 +47,9 @@ class BiometricService {
     const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(cleanImage, "base64");
 
-    // ====================================================
-    // 1️⃣ CHECK DUPLICATE FACE (CHEAP FIRST)
-    // ====================================================
+    // ===============================
+    // DUPLICATE CHECK
+    // ===============================
     const search = await client.send(
       new SearchFacesByImageCommand({
         CollectionId: COLLECTION_ID,
@@ -57,81 +59,81 @@ class BiometricService {
       })
     );
 
-     if (search.FaceMatches.length > 0) {
-        const err = new Error("Tayari una account");
-        err.code = "FACE_DUPLICATE";
-        err.meta = {
-          matchScore: search.FaceMatches[0].Similarity
-       };
-       throw err;
-     }
-
-
-    // ====================================================
-    // 2️⃣ AGE DETECTION
-    // ====================================================
-    try {
-      const detect = await client.send(
-        new DetectFacesCommand({
-          Image: { Bytes: buffer },
-          Attributes: ["DEFAULT"],
-        })
-      );
-
-      if (!detect.FaceDetails.length) {
-        const err = new Error("Face haijaonekana vizuri.");
-        err.code = "NO_FACE";
-        throw err;
-      }
-
-      const ageLow = detect.FaceDetails[0].AgeRange.Low;
-      const ageHigh = detect.FaceDetails[0].AgeRange.High;
-
-      // mtoto kabisa
-      if (ageHigh < 16) {
-        const err = new Error("Mtoto haruhusiwi kujisajili.");
-        err.code = "UNDERAGE";
-        throw err;
-      }
-
-      // doubtful age
-      if (ageLow < 18 && ageHigh >= 18) {
-        const err = new Error("Thibitisha umri kwa NIDA.");
-        err.code = "AGE_UNCERTAIN";
-        throw err;
-      }
-
-    } catch (err) {
-      throw err; // USIFUTE ERROR
+    if (search.FaceMatches.length > 0) {
+      const err = new Error("Tayari una account");
+      err.code = "FACE_DUPLICATE";
+      throw err;
     }
 
-    // ====================================================
-    // 3️⃣ SAVE TEMP BIOMETRIC
-    // ====================================================
+    // ===============================
+    // AGE CHECK
+    // ===============================
+    const detect = await client.send(
+      new DetectFacesCommand({
+        Image: { Bytes: buffer },
+        Attributes: ["DEFAULT"],
+      })
+    );
+
+    if (!detect.FaceDetails.length) {
+      const err = new Error("Face haijaonekana vizuri.");
+      err.code = "NO_FACE";
+      throw err;
+    }
+
+    const ageLow = detect.FaceDetails[0].AgeRange.Low;
+    const ageHigh = detect.FaceDetails[0].AgeRange.High;
+
+    if (ageHigh < 16) {
+      const err = new Error("Mtoto haruhusiwi kujisajili.");
+      err.code = "UNDERAGE";
+      throw err;
+    }
+
+    if (ageLow < 18 && ageHigh >= 18) {
+      const err = new Error("Thibitisha umri kwa NIDA.");
+      err.code = "AGE_UNCERTAIN";
+      throw err;
+    }
+
+    // ===============================
+    // SAVE TEMP
+    // ===============================
     const faceHash = crypto
       .createHash("sha256")
       .update(cleanImage)
       .digest("hex");
 
-    // kama tayari ipo pending
     const existing = await FaceBiometric.findOne({
       faceHash,
       status: "pending",
     });
 
     if (existing) {
-      return { biometricId: existing._id };
+      return { success: true, biometricId: existing._id };
     }
 
-    const biometric = await FaceBiometric.create({
-      faceHash,
-      faceImage: cleanImage,
-      status: "pending",
-      expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
-    });
+     const biometric = await FaceBiometric.create({
+        faceHash,
+       faceImage: cleanImage.slice(0, 200000),
+       status: "pending",
+       expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
+      });
 
-    return { biometricId: biometric._id };
+
+    return { success: true, biometricId: biometric._id };
+
+  } catch (err) {
+    console.error("VERIFY FACE ERROR:", err);
+
+    if (!err.message) {
+      err.message = "Face scan imeshindikana. Angalia internet.";
+    }
+
+    throw err;
   }
+}
+
 
   // ====================================================
   // ATTACH FACE AFTER USER CREATED
