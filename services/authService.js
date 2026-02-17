@@ -288,51 +288,73 @@ class AuthService {
     const tokens = this.generateTokens(user);
     return { user, ...tokens };
   }
+// ======================================================
+// SEND RESET PIN CODE
+// ======================================================
+async sendResetPinCode(rawPhone) {
+  const phone = rawPhone;
+  this.validatePhone(phone);
 
-  /**
-   * ======================================================
-   * RESET PIN (UNCHANGED)
-   * ======================================================
-   */
-  async sendResetPinCode(rawPhone) {
-    const phone = rawPhone;
-    this.validatePhone(phone);
+  const user = await User.findOne({ phone });
+  if (!user) return; // usionyeshe kama user haipo
 
-    const user = await User.findOne({ phone });
-    if (!user) return;
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+  user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
+  user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
+  await user.save();
 
-    user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
-    user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
-    await user.save();
-
+  // ===============================
+  // PUSH NOTIFICATION (ikiwa ipo)
+  // ===============================
+  try {
     await pushService.sendToUser(user._id, {
       title: "Reset PIN",
       body: `Code yako ya kurekebisha PIN ni: ${code}`,
       type: "PIN_RESET",
     });
+  } catch (err) {
+    console.log("Push failed or no push token");
   }
 
-  async resetPin({ rawPhone, code, newPin }) {
-    const phone = rawPhone;
-    this.validatePhone(phone);
-    this.validatePin(newPin);
-
-    const user = await User.findOne({ phone });
-    if (!user) throw new Error("Invalid request");
-
-    const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
-
-    if (user.resetPinCode !== hashedCode || user.resetPinExpiresAt < Date.now()) {
-      throw new Error("Code si sahihi au ime-expire");
-    }
-
-    user.pin = await bcrypt.hash(newPin, 10);
-    user.resetPinCode = null;
-    user.resetPinExpiresAt = null;
-    await user.save();
+  // ===============================
+  // SMS FALLBACK
+  // ===============================
+  try {
+    const smsService = require("./smsService"); // hakikisha file ipo
+    await smsService.sendSMS(phone, `Code yako ya PIN ni: ${code}`);
+  } catch (err) {
+    console.log("SMS failed");
   }
 }
 
+
+// ======================================================
+// RESET PIN
+// ======================================================
+async resetPin({ rawPhone, code, newPin }) {
+  const phone = rawPhone;
+  this.validatePhone(phone);
+  this.validatePin(newPin);
+
+  const user = await User.findOne({ phone });
+  if (!user) throw new Error("Invalid request");
+
+  const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+
+  if (
+    user.resetPinCode !== hashedCode ||
+    user.resetPinExpiresAt < Date.now()
+  ) {
+    throw new Error("Code si sahihi au ime-expire");
+  }
+
+  user.pin = await bcrypt.hash(newPin, 10);
+  user.resetPinCode = null;
+  user.resetPinExpiresAt = null;
+  await user.save();
+}
+}
+   
+  
 module.exports = new AuthService();
