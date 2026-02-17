@@ -1,4 +1,4 @@
-   // services/pushService.js
+  // services/pushService.js
 
 const axios = require("axios");
 const User = require("../models/User"); // 🆕 SAFE ADD
