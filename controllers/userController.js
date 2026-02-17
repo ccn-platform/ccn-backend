@@ -164,32 +164,34 @@ if (
    * 7️⃣ SAVE EXPO PUSH TOKEN
    * ✅ ADD ONLY — supports BOTH token & expoPushToken
    */
-  async savePushToken(req, res) {
-    try {
-      // 🔑 ACCEPT BOTH (SAFE ADDITION)
-      const token = req.body.token || req.body.expoPushToken;
+  
+async savePushToken(req, res) {
+  try {
+    const token = req.body.pushToken || req.body.token;
 
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          message: "Push token is required.",
-        });
-      }
-
-      const updatedUser = await userService.savePushToken(
-        req.params.id,
-        token
-      );
-
-      res.json({
-        success: true,
-        message: "Push token saved successfully.",
-        user: updatedUser,
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Push token required",
       });
-    } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
     }
+
+    const userId = req.user.userId; // kutoka JWT
+
+    const updatedUser = await userService.savePushToken(userId, token);
+
+    res.json({
+      success: true,
+      message: "Push token saved",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
+}
 }
 
 module.exports = new UserController();
