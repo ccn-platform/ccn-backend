@@ -70,22 +70,21 @@ class BiometricController {
        });
 
       }
-     // ===============================
-  // OTHER KNOWN ERRORS
-  // ===============================
-  if (
-    error.code === "NO_FACE" ||
-    error.code === "UNDERAGE" ||
-    error.code === "AGE_UNCERTAIN" ||
-    error.code === "NO_IMAGE"
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-
-
+    // ===============================
+// OTHER KNOWN ERRORS
+// ===============================
+if (
+  error.code === "NO_FACE" ||
+  error.code === "UNDERAGE" ||
+  error.code === "AGE_UNCERTAIN" ||
+  error.code === "NO_IMAGE" ||
+  error.code === "AGE_DETECT_FAIL"   // 🔴 ONGEZA HII
+) {
+  return res.status(400).json({
+    success: false,
+    message: error.message,
+  });
+}
 
       console.error("Biometric error:", error);
 
