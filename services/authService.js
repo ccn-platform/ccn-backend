@@ -303,23 +303,26 @@ async sendResetPinCode(rawPhone) {
   user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
   user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
   await user.save();
+ // ===============================
+// PUSH NOTIFICATION (ikiwa ipo)
+// ===============================
+try {
+  await pushService.sendToUser(user._id, {
+    title: "Reset PIN",
+    body: `Code yako ya kurekebisha PIN ni: ${code}`,
+    type: "PIN_RESET",
+    data: {
+      phone: user.phone, // ⭐ MUHIMU kwa frontend navigation
+    },
+  });
+} catch (err) {
+  console.log("Push failed or no push token");
+}
 
-  // ===============================
-  // PUSH NOTIFICATION (ikiwa ipo)
-  // ===============================
-  try {
-    await pushService.sendToUser(user._id, {
-      title: "Reset PIN",
-      body: `Code yako ya kurekebisha PIN ni: ${code}`,
-      type: "PIN_RESET",
-    });
-  } catch (err) {
-    console.log("Push failed or no push token");
-  }
+// ===============================
+// SMS FALLBACK
+// ===============================
 
-  // ===============================
-  // SMS FALLBACK
-  // ===============================
   try {
     const smsService = require("./smsService"); // hakikisha file ipo
     await smsService.sendSMS(phone, `Code yako ya PIN ni: ${code}`);
