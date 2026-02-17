@@ -105,8 +105,8 @@ router.put(
 // =======================
 // 6️⃣ SAVE PUSH TOKEN
 // =======================
-router.put(
-  "/:id/push-token",
+ router.post(
+  "/save-push-token",
   auth,
   roles("customer", "agent"),
   userController.savePushToken
