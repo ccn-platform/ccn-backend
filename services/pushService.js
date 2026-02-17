@@ -1,4 +1,4 @@
- // services/pushService.js
+   // services/pushService.js
 
 const axios = require("axios");
 const User = require("../models/User"); // 🆕 SAFE ADD
@@ -112,22 +112,32 @@ class PushService {
    * - Used by authService (forgot PIN, security alerts)
    * - Fetches user's expoPushToken internally
    */
-  async sendToUser(userId, payload) {
-    const user = await User.findById(userId).select("expoPushToken pushToken");
-    if (!user) {
-      console.error("❌ User not found for push");
-      return;
-    }
-
-    const token = user.expoPushToken || user.pushToken;
-    if (!token) {
-      console.error("❌ User has no push token");
-      return;
-    }
-
-    const { title, body, data } = payload;
-    return this.sendRaw(token, title, body, data || {});
+   async sendToUser(userId, payload) {
+  const user = await User.findById(userId).select("expoPushToken pushToken phone");
+  if (!user) {
+    console.error("❌ User not found for push");
+    return;
   }
+
+  const token = user.expoPushToken || user.pushToken;
+  if (!token) {
+    console.error("❌ User has no push token");
+    return;
+  }
+
+  const title = payload.title || "Notification";
+  const body = payload.body || "";
+  const type = payload.type || null;
+
+  const data = {
+    ...payload.data,
+    type,
+    phone: user.phone, // ⭐ MUHIMU SANA
+  };
+
+  return this.sendRaw(token, title, body, data);
+}
+
 }
 
 module.exports = new PushService();
