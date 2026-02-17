@@ -98,6 +98,20 @@ if (
     // UPDATE
     // ============================
     const updated = await userService.updateUser(userId, req.body);
+    // ⭐ SYNC AGENT PROFILE
+ if (updated.role === "agent") {
+  const Agent = require("../models/Agent");
+
+  await Agent.findOneAndUpdate(
+    { user: updated._id },
+    {
+      fullName: updated.fullName,
+      phone: updated.phone,
+      businessName: updated.businessName,
+    },
+    { new: true }
+  );
+}
 
     res.json({ success: true, user: updated });
 
