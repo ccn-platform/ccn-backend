@@ -375,6 +375,11 @@ Kwa maswali au malalamiko kuhusu sera hii, wasiliana na support kupitia app.
 ---
 
 
+
+Kumbuka: Baadhi ya vipengele vilivyoelezwa katika sera hii vinaweza kutumika kwenye matoleo fulani ya app pekee.
+Toleo la app la Mfanyabiashara (Business app) halitumii uthibitishaji wa uso (face biometric) wala face scan.
+
+
 ## Mwisho
 
 Kwa kutumia app:
