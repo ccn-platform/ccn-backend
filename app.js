@@ -125,6 +125,19 @@ app.get("/delete-account", (req, res) => {
   `);
 });
 
+// 🔐 PRIVACY POLICY PUBLIC PAGE (PLAY STORE)
+app.get("/privacy-policy", (req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.send(`
+    <h2>Privacy Policy - Commodity Credit Network</h2>
+    <p>This platform collects user data such as name, phone number and transaction data for account and credit services.</p>
+    <p>Data is encrypted and used only for service functionality and security.</p>
+    <p>We do not sell user data.</p>
+    <p>Users can request account deletion at any time from the app settings.</p>
+    <p>Contact: ibracredity@gmail.com</p>
+  `);
+});
+
 
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
@@ -152,4 +165,5 @@ app.use((err, req, res, next) => {
 
 module.exports = app;
  
+
 
