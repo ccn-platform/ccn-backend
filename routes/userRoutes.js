@@ -112,4 +112,15 @@ router.put(
   userController.savePushToken
 );
 
+// =======================
+// 9️⃣ REQUEST ACCOUNT DELETE (PLAY STORE REQUIRED)
+// =======================
+ router.post(
+  "/delete-account-request",
+  auth,
+  roles("customer", "agent"),
+  userController.requestDeleteAccount
+);
+
+
 module.exports = router;
