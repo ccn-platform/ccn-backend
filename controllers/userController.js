@@ -1,4 +1,4 @@
-  // controllers/userController.js
+ // controllers/userController.js
 
 const userService = require("../services/userService");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADDED
@@ -206,6 +206,72 @@ async savePushToken(req, res) {
     });
   }
 }
+/**
+ * 8️⃣ REQUEST ACCOUNT DELETE
+ */
+async requestDeleteAccount(req, res) {
+  try {
+    const userId = req.user.userId;
+    const role = req.user.role;
+
+    const user = await userService.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // already requested
+    if (user.deleteRequested) {
+      return res.status(400).json({
+        success: false,
+        message: "Delete request already submitted.",
+      });
+    }
+
+    // ===============================
+    // CUSTOMER: lazima asiwe na deni
+    // ===============================
+    if (role === "customer") {
+      const hasDebt = await Loan.findOne({
+        customer: user._id,
+        status: { $in: ["active", "overdue"] },
+      });
+
+      if (hasDebt) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Huwezi kufuta account ukiwa na deni. Tafadhali maliza deni kwanza.",
+        });
+      }
+    }
+
+    // ===============================
+    // SAVE REQUEST
+    // ===============================
+    user.deleteRequested = true;
+    user.deleteRequestedAt = new Date();
+    await user.save();
+
+    return res.json({
+      success: true,
+      message:
+        "Account deletion request received. It will be processed within 48 hours.",
+    });
+  } catch (err) {
+    console.error("DELETE REQUEST ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to request account deletion",
+    });
+  }
+}
+
+ 
 }
 
 module.exports = new UserController();
+ 
