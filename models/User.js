@@ -83,6 +83,15 @@ const UserSchema = new mongoose.Schema(
      */
     resetPinCode: { type: String, default: null },
     resetPinExpiresAt: { type: Date, default: null },
+/**
+ * ======================================================
+ * 🗑️ ACCOUNT DELETE REQUEST
+ * ======================================================
+ */
+deleteRequested: { type: Boolean, default: false },
+deleteRequestedAt: { type: Date, default: null },
+
+
   },
   { timestamps: true }
 );
