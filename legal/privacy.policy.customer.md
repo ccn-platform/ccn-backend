@@ -194,6 +194,10 @@ You agree to its terms
 
 
 
+Note: Some features described in this policy may apply only to specific versions of the app.
+The Business app version does not use facial biometric or face verification features.
+
+
 
 
 
