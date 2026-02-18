@@ -121,7 +121,7 @@ app.get("/delete-account", (req, res) => {
       <li>Submit your request</li>
     </ol>
     <p>Deletion requests are processed within 48 hours.</p>
-    <p>Support: support@ccn.co.tz</p>
+    <p>Support: commoditycreditnetwork@gmail.com</p>
   `);
 });
 
@@ -152,3 +152,4 @@ app.use((err, req, res, next) => {
 
 module.exports = app;
  
+
