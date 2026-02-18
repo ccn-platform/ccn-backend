@@ -99,7 +99,7 @@ app.use("/api/ussd", require("./routes/ussdRoutes"));
 
 const supportRoutes = require("./routes/supportRoutes");
 
- app.use("/api/support", supportRoutes);
+app.use("/support", supportRoutes);
 
 // =====================================================
 // 4️⃣ HEALTH CHECK
@@ -107,6 +107,24 @@ const supportRoutes = require("./routes/supportRoutes");
 app.get("/", (req, res) => {
   res.send("🔥 CCN Backend API is live & running...");
 });
+
+// =====================================================
+// 🗑️ DELETE ACCOUNT PUBLIC PAGE (PLAY STORE REQUIRED)
+// =====================================================
+app.get("/delete-account", (req, res) => {
+  res.send(`
+    <h2>Delete Account - CCN</h2>
+    <p>To request account deletion:</p>
+    <ol>
+      <li>Open the CCN app</li>
+      <li>Go to Settings → Delete Account</li>
+      <li>Submit your request</li>
+    </ol>
+    <p>Deletion requests are processed within 48 hours.</p>
+    <p>Support: support@ccn.co.tz</p>
+  `);
+});
+
 
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
@@ -133,7 +151,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-
-
-
-
+ 
