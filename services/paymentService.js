@@ -1,4 +1,4 @@
- 
+  
 const mongoose = require("mongoose");
 
 const Loan = require("../models/Loan");
@@ -392,7 +392,7 @@ async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
           },
           reason,
         },
-        source: "AGENT",
+        source: "MANUAL",
       }],
       { session }
     );
@@ -538,4 +538,4 @@ async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
     return { success: true };
   }
 } 
-module.exports = new PaymentService();
+module.exports = new PaymentService();     
