@@ -1,9 +1,12 @@
-    const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 const AgentFee = require("../models/agentFee");
 const AgentFeePayment = require("../models/agentFeePayment");
 const ControlNumber = require("../models/controlNumber");
 const Agent = require("../models/Agent");
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+dayjs.extend(utc);
+
 const generateReference = require("../utils/generateReference");
 
 /**
@@ -84,8 +87,9 @@ async createInitialFee(agentId) {
   }
 
   // 🆓 FREE TRIAL: 1 MONTH
-  const start = dayjs();
-  const end = start.add(1, "month");
+   const start = dayjs().utc();
+   const end = start.add(1, "month");
+
 
   const fee = await AgentFee.create({
     agent: agentObjectId,
@@ -130,30 +134,33 @@ async checkStatus(agentId) {
     };
   }
 
-  const today = dayjs();
-  const expiry = dayjs(fee.endDate);
+   const today = dayjs().utc();
+   const expiry = dayjs(fee.endDate).utc();
 
-  if (today.isAfter(expiry)) {
-    fee.status = "expired";
-    await fee.save();
-    await syncAgentFeeSnapshot(agentObjectId, fee);
 
-    return {
-      isActive: false,
-      status: "expired",
-      remainingDays: 0,
-      expiresOn: expiry.format("YYYY-MM-DD"),
-      plan: fee.plan,
-    };
-  }
+const hoursLeft = expiry.diff(today, "hour");
+
+if (hoursLeft <= 0) {
+  fee.status = "expired";
+  await fee.save();
+  await syncAgentFeeSnapshot(agentObjectId, fee);
 
   return {
-    isActive: true,
-    status: "active",
-    remainingDays: expiry.diff(today, "day"),
+    isActive: false,
+    status: "expired",
+    remainingDays: 0,
     expiresOn: expiry.format("YYYY-MM-DD"),
-    plan: fee.plan, // FREE_TRIAL INCLUDED
+    plan: fee.plan,
   };
+}
+
+return {
+  isActive: true,
+  status: "active",
+  remainingDays: Math.ceil(hoursLeft / 24),
+  expiresOn: expiry.format("YYYY-MM-DD"),
+  plan: fee.plan,
+};
 }
 
 
@@ -245,11 +252,20 @@ async checkStatus(agentId) {
 
     if (!fee) fee = await this.createInitialFee(agentObjectId);
 
-    const start = fee.endDate ? dayjs(fee.endDate) : dayjs();
-    const newEnd = start.add(plan.duration.value, plan.duration.unit);
+     const now = dayjs().utc();
 
-    fee.startDate = start.toDate();
+
+   // kama bado active → ongeza juu ya expiry iliyopo
+    const base =
+      fee.endDate && dayjs(fee.endDate).utc().isAfter(now)
+       ? dayjs(fee.endDate).utc()
+        : now;
+
+    const newEnd = base.add(plan.duration.value, plan.duration.unit);
+
+    fee.startDate = base.toDate();   // 🔥 HII NDIYO FIX
     fee.endDate = newEnd.toDate();
+
     fee.status = "active";
     fee.plan = planKey;
     fee.amountPaid += amount;
