@@ -1,4 +1,4 @@
-  const Agent = require("../models/Agent");
+   const Agent = require("../models/Agent");
 const Loan = require("../models/Loan");
 const AgentSubscription = require("../models/agentFee");
 const BusinessCategory = require("../models/businessCategory");
@@ -35,49 +35,51 @@ class AgentService {
    * (USED BY LoanService — DO NOT REMOVE)
    * ====================================================== */
   async getCustomerDebtsForAgentCategory(customerId, categoryId) {
-    const loans = await Loan.find({
-      customer: customerId,
-      agentCategory: categoryId,
-      status: { $in: ["active", "overdue", "defaulted"] },
-    }).select(
-      "status totalPayable amountPaid createdAt agentSnapshot"
-    );
+  const loans = await Loan.find({
+    customer: customerId,
+    agentCategory: categoryId,
+    status: { $in: ["active", "overdue", "defaulted"] },
+  }).select(
+    "status principalRemaining feesRemaining penaltiesRemaining createdAt agentSnapshot"
+  );
 
-    let totalDebt = 0;
+  let totalDebt = 0;
 
-    const debts = loans
-      .map((loan) => {
-        const balance =
-          (loan.totalPayable || 0) - (loan.amountPaid || 0);
+  const debts = loans
+    .map((loan) => {
+      const balance =
+        (loan.principalRemaining || 0) +
+        (loan.feesRemaining || 0) +
+        (loan.penaltiesRemaining || 0);
 
-        // 🚫 USIONYESHE DENI KAMA LIMEKWISHA LIPWA
-        if (balance <= 0) return null;
+      if (balance <= 0) return null;
 
-        totalDebt += balance;
+      totalDebt += balance;
 
-        return {
-          loanId: loan._id,
-          agentName:
-            loan.agentSnapshot?.businessName ||
-            loan.agentSnapshot?.fullName ||
-            "Wakala",
-          status: loan.status,
-          balance,
-          createdAt: loan.createdAt,
-        };
-      })
-      .filter(Boolean); // 🚨 MUHIMU
+      return {
+        loanId: loan._id,
+        agentName:
+          loan.agentSnapshot?.businessName ||
+          loan.agentSnapshot?.fullName ||
+          "Wakala",
+        status: loan.status,
+        balance,
+        createdAt: loan.createdAt,
+      };
+    })
+    .filter(Boolean);
 
-    return {
-      count: debts.length,
-      totalDebt,
-      debts,
-      summary: {
-        totalLoans: debts.length,
-        totalOutstanding: totalDebt,
-      },
-    };
-  }
+  return {
+    count: debts.length,
+    totalDebt,
+    debts,
+    summary: {
+      totalLoans: debts.length,
+      totalOutstanding: totalDebt,
+    },
+  };
+}
+
 
   /* ======================================================
    * ⭐ DASHBOARD: RECENT ACTIVITY
