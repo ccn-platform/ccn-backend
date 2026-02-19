@@ -138,6 +138,43 @@ app.get("/privacy-policy", (req, res) => {
   `);
 });
 
+// =====================================================
+// 🟢 CLICKPESA CALLBACK WEBHOOK (PAYMENT RESULT)
+// =====================================================
+app.post("/api/clickpesa/callback", async (req, res) => {
+  try {
+    console.log("📩 CLICKPESA CALLBACK:", req.body);
+
+    const data = req.body;
+
+    /**
+     * ClickPesa watatuma data kama:
+     * - reference
+     * - amount
+     * - status (SUCCESS / FAILED)
+     * - phone
+     */
+
+    // mfano: reference ya transaction yako
+    const reference = data.reference || data.transactionReference;
+    const status = data.status || data.result;
+
+    // TODO: hapa utaconnect na mfumo wako wa fees
+    // mfano: update Revenue table
+    // au mark fee paid
+
+    if (status === "SUCCESS") {
+      console.log("💰 PAYMENT SUCCESS:", reference);
+    } else {
+      console.log("❌ PAYMENT FAILED:", reference);
+    }
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("CLICKPESA CALLBACK ERROR:", err.message);
+    res.status(200).send("ERROR HANDLED");
+  }
+});
 
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
@@ -165,5 +202,6 @@ app.use((err, req, res, next) => {
 
 module.exports = app;
  
+
 
 
