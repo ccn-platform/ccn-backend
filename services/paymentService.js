@@ -1,4 +1,6 @@
   
+
+ 
 const mongoose = require("mongoose");
 
 const Loan = require("../models/Loan");
@@ -118,7 +120,7 @@ await loan.save();
 // 3️⃣ 🏢 ANDIKA MAPATO YA KAMPUNI (ADA)
 if (split.feesToPay > 0) {
   await Revenue.create({
-    source: "loan_fee",
+     source: "LOAN_FEE",
     amount: split.feesToPay,
     totalFee: split.feesToPay, // muhimu kuzuia error
     loan: loan._id,
@@ -230,7 +232,7 @@ async payLoanFee(agentId, loanId, amountPaid) {
   );
 
   await Revenue.create({
-    source: "loan_fee",
+    source: "LOAN_FEE", 
     amount: amountPaid,
     totalFee: amountPaid,
     loan: loan._id,
@@ -541,4 +543,6 @@ async agentAdjustLoan({ agentId, loanId, adjustAmount, reason }) {
   }
 } 
 module.exports = new PaymentService();     
+ 
+
  
