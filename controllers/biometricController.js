@@ -51,7 +51,7 @@ class BiometricController {
           guard.attempts += 1;
 
           // mara ya pili → block
-          if (guard.attempts >= 2) {
+          if (guard.attempts >= 3) {
             guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
             await guard.save();
 
