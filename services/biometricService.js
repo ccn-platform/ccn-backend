@@ -1,4 +1,4 @@
-  const FaceBiometric = require("../models/FaceBiometric");
+    const FaceBiometric = require("../models/FaceBiometric");
 const crypto = require("crypto");
 const {
   SearchFacesByImageCommand,
@@ -59,7 +59,7 @@ class BiometricService {
       })
     );
 
-    if (search.FaceMatches.length > 0) {
+    if (search.FaceMatches && search.FaceMatches.length > 0) {
       const err = new Error("Tayari una account");
       err.code = "FACE_DUPLICATE";
       throw err;
@@ -75,7 +75,7 @@ class BiometricService {
       })
     );
 
-    if (!detect.FaceDetails.length) {
+    if (!detect.FaceDetails || !detect.FaceDetails.length) {
       const err = new Error("Face haijaonekana vizuri.");
       err.code = "NO_FACE";
       throw err;
@@ -118,7 +118,7 @@ if (!faceDetail) {
 
      const biometric = await FaceBiometric.create({
         faceHash,
-       faceImage: cleanImage.slice(0, 200000),
+       faceImage: cleanImage.slice(0, 120000),
        status: "pending",
        expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
       });
@@ -142,6 +142,11 @@ if (!faceDetail) {
   // ATTACH FACE AFTER USER CREATED
   // ====================================================
   async attachBiometricToUser({ biometricId, userId, imageBase64 }) {
+   
+    // 🔴 ADD HII HAPA JUU
+  if (!imageBase64) {
+    throw new Error("Face image missing");
+  }
     const biometric = await FaceBiometric.findById(biometricId);
     if (!biometric) throw new Error("Biometric not found");
 // 🔴 muhimu sana
