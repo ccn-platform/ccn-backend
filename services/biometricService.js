@@ -1,4 +1,4 @@
- const FaceBiometric = require("../models/FaceBiometric");
+  const FaceBiometric = require("../models/FaceBiometric");
 const crypto = require("crypto");
 const {
   SearchFacesByImageCommand,
@@ -89,30 +89,15 @@ if (!faceDetail) {
   throw err;
 }
 
-// 🔴 HAPA NDIPO FIX
-if (!faceDetail.AgeRange) {
-  const err = new Error("Imeshindikana kuthibitisha umri. Jaribu tena ukiwa kwenye mwanga mzuri.");
-  err.code = "AGE_DETECT_FAIL";
-  throw err;
+  if (faceDetail.AgeRange) {
+  const ageHigh = faceDetail.AgeRange.High;
+
+  if (ageHigh < 16) {
+    const err = new Error("Mtoto haruhusiwi kujisajili.");
+    err.code = "UNDERAGE";
+    throw err;
+  }
 }
-
-const ageLow = faceDetail.AgeRange.Low;
-const ageHigh = faceDetail.AgeRange.High;
-
-// watoto chini ya 16
-if (ageHigh < 16) {
-  const err = new Error("Mtoto haruhusiwi kujisajili.");
-  err.code = "UNDERAGE";
-  throw err;
-}
-
-// 16–17 ambiguous
-if (ageLow < 18 && ageHigh >= 18) {
-  const err = new Error("Thibitisha umri kwa NIDA.");
-  err.code = "AGE_UNCERTAIN";
-  throw err;
-}
-
 
     // ===============================
     // SAVE TEMP
@@ -193,4 +178,3 @@ if (ageLow < 18 && ageHigh >= 18) {
 const biometricService = new BiometricService();
 module.exports = biometricService;
 module.exports.ensureCollection = ensureCollection;
-  
