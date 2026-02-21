@@ -1,4 +1,4 @@
-  const authService = require("../services/authService");
+ const authService = require("../services/authService");
 const User = require("../models/User");
  const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
@@ -65,13 +65,13 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
   });
 }
 
-if (req.body.biometricId && req.body.phone) {
+ if (req.body.biometricId && req.body.phone) {
+
+  const normalizedPhone = normalizePhone(req.body.phone);  // ⭐ muhimu
 
   const existingUser = await User.findOne({
-  phoneNormalized: req.body.phone
-});
-
-    
+    phoneNormalized: normalizedPhone
+  });
 
   if (existingUser) {
 
