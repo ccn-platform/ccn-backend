@@ -122,7 +122,7 @@ if (!faceDetail) {
        status: "pending",
        expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
       });
-
+console.log("SAVED BIOMETRIC:", biometric._id);   // 👈 WEKA HAP
 
     return { success: true, biometricId: biometric._id };
 
