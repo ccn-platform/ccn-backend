@@ -123,13 +123,13 @@ deleteRequestedAt: { type: Date, default: null },
   next();
 });
 
-
-   
- // ===============================
+// ===============================
 // 📊 INDEXES FOR PRODUCTION
 // ===============================
 UserSchema.index({ phone: 1 });
-UserSchema.index({ phoneNormalized: 1 });
-UserSchema.index({ nationalId: 1 });
 
+// nationalId lazima iwe unique lakini iruhusu null (FACE users)
+UserSchema.index({ nationalId: 1 }, { unique: true, sparse: true });
+   
+ 
 module.exports = mongoose.model("User", UserSchema);
