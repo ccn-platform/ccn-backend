@@ -5,14 +5,21 @@ class BiometricController {
     const guard = req.registerGuard || null;
 
     try {
-      const { image } = req.body;
+     const { image, deviceId } = req.body;
 
-      if (!image) {
-        return res.status(400).json({
-          success: false,
-          message: "Image is required",
-        });
-      }
+     if (!image) {
+  return res.status(400).json({
+    success: false,
+    message: "Image is required",
+  });
+}
+
+if (!deviceId) {
+  return res.status(400).json({
+    success: false,
+    message: "Device ID missing",
+  });
+}
 
       // =====================================
       // 🚫 BLOCK CHECK (24H)
@@ -23,9 +30,11 @@ class BiometricController {
           message: "Umezuiwa kwa saa 24. Jaribu kesho. kumbuka hauruhusiwi kujisajili mara mbili",
         });
       }
-
-      const result = await biometricService.verifyCustomerFace(image);
-
+    const result = await biometricService.verifyCustomerFace(
+        image,
+        deviceId
+    );
+       
       // =====================================
       // RESET ATTEMPTS IF SUCCESS
       // =====================================
@@ -40,8 +49,19 @@ class BiometricController {
         biometricId: result.biometricId,
       });
 
-    } catch (error) {
+    } 
+    
+    catch (error) {
 
+// =====================================
+// DEVICE ALREADY USED
+// =====================================
+   if (error.code === "DEVICE_USED") {
+      return res.status(409).json({
+       success: false,
+      message: "Simu hii tayari imeshatumika kujisajili.",
+    });
+  }
       // =====================================
       // 🔴 FACE DUPLICATE CONTROL
       // =====================================
