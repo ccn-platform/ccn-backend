@@ -1,4 +1,4 @@
-/**
+  /**
  * ======================================================
  * INITIAL ADMIN SEED (ONE-TIME)
  * ======================================================
@@ -10,9 +10,19 @@ require("dotenv").config();
 const AuthService = require("../services/authService");
 const User = require("../models/User");
 
+// ⭐ CHUKUA URI SAHIHI
+const MONGO_URI =
+  process.env.NODE_ENV === "production"
+    ? process.env.MONGO_URI_ATLAS
+    : process.env.MONGO_URI_ATLAS || process.env.MONGO_URI;
+
 async function seedAdmin() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    if (!MONGO_URI) {
+      throw new Error("Mongo URI haipo kwenye .env");
+    }
+
+    await mongoose.connect(MONGO_URI);
 
     // ✅ TAARIFA ZAKO
     const adminPhone = "0758078629";
