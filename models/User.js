@@ -1,4 +1,4 @@
-  
+    
 
  
  const mongoose = require("mongoose");
@@ -24,7 +24,7 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
 
-    nationalId: { type: String, unique: true, sparse: true },
+    nationalId: { type: String, default: null },
 
     pin: { type: String, required: true },
 
