@@ -1,4 +1,4 @@
-    
+   
 
  
  const mongoose = require("mongoose");
@@ -24,7 +24,10 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
 
-    nationalId: { type: String, default: null },
+    nationalId: {
+  type: String,
+  default: undefined, // muhimu sana
+},
 
     pin: { type: String, required: true },
 
@@ -123,13 +126,18 @@ deleteRequestedAt: { type: Date, default: null },
   next();
 });
 
-// ===============================
+
+   
+ // ===============================
 // 📊 INDEXES FOR PRODUCTION
 // ===============================
-UserSchema.index({ phone: 1 });
+ UserSchema.index({ phone: 1 });
+UserSchema.index({ phoneNormalized: 1 });
 
-// nationalId lazima iwe unique lakini iruhusu null (FACE users)
-UserSchema.index({ nationalId: 1 }, { unique: true, sparse: true });
-   
- 
+// unique only when exists
+UserSchema.index(
+  { nationalId: 1 },
+  { unique: true, sparse: true }
+);
+
 module.exports = mongoose.model("User", UserSchema);
