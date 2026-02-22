@@ -53,7 +53,7 @@ async verifyCustomerFace(imageBase64, deviceId) {
     }
 console.log("VERIFY REQUEST:", deviceId);
   // =====================================================
-// DEVICE REUSE CHECK (SOFT CHECK ONLY)
+// DEVICE REUSE CHECK (7 DAYS COOL-DOWN)
 // =====================================================
 const deviceAlreadyLinked = await FaceBiometric.findOne({
   deviceId,
@@ -61,8 +61,19 @@ const deviceAlreadyLinked = await FaceBiometric.findOne({
 }).lean();
 
 if (deviceAlreadyLinked) {
-  console.log("Device reused → allowing new registration (possible new owner)");
-  // HATUZUI — face duplicate check ndiyo identity halisi
+  const daysSince =
+    (Date.now() - new Date(deviceAlreadyLinked.updatedAt).getTime()) /
+    (1000 * 60 * 60 * 24);
+
+  if (daysSince < 7) {
+    const err = new Error(
+      "Simu hii imetumika hivi karibuni. Jaribu tena baada ya siku chache."
+    );
+    err.code = "DEVICE_RECENT";
+    throw err;
+  }
+
+  console.log("Device reused after 7 days → allowed");
 }
 
     const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
