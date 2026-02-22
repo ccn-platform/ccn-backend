@@ -1,25 +1,34 @@
- const RegisterGuard = require("../models/RegisterGuard");
+  const RegisterGuard = require("../models/RegisterGuard");
 
 module.exports = async function (req, res, next) {
   try {
-    const phone = req.body.phone || "no-phone";
-    const nationalId = req.body.nationalId || "no-nida";
-    const deviceId = req.body.deviceId || "no-device";
-    const ip = req.ip || "no-ip";
 
-    let guard = await RegisterGuard.findOne({
-      phone,
-      nationalId,
-      deviceId,
-      ip,
-    });
+    const queries = [];
+
+    if (req.body.deviceId) {
+      queries.push({ deviceId: req.body.deviceId });
+    }
+
+    if (req.body.nationalId) {
+      queries.push({ nationalId: req.body.nationalId });
+    }
+
+    if (req.body.phone) {
+      queries.push({ phone: req.body.phone });
+    }
+
+    let guard = null;
+
+    if (queries.length > 0) {
+      guard = await RegisterGuard.findOne({ $or: queries });
+    }
 
     if (!guard) {
       guard = await RegisterGuard.create({
-        phone,
-        nationalId,
-        deviceId,
-        ip,
+        phone: req.body.phone || null,
+        nationalId: req.body.nationalId || null,
+        deviceId: req.body.deviceId || null,
+        ip: req.ip,
       });
     }
 
@@ -33,6 +42,7 @@ module.exports = async function (req, res, next) {
 
     req.registerGuard = guard;
     next();
+
   } catch (err) {
     next(err);
   }
