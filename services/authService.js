@@ -108,25 +108,26 @@ async registerCustomer(data) {
     }
   }
 
-  // ===============================
+  
   // 4️⃣ CREATE USER
-  // ===============================
-  const hashedPin = await bcrypt.hash(pin, 10);
-  const customerId = idGenerator.generateCustomerID();
+const hashedPin = await bcrypt.hash(pin, 10);
+const customerId = idGenerator.generateCustomerID();
 
-  const user = await User.create({
-    fullName,
-    phone,
-    pin: hashedPin,
-    nationalId: nationalId || null,
-    role: "customer",
-    systemId: customerId,
-  });
+// build object first
+const userData = {
+  fullName,
+  phone,
+  pin: hashedPin,
+  role: "customer",
+  systemId: customerId,
+};
 
-  await Customer.create({
-    user: user._id,
-    customerId,
-  });
+// only add nationalId if exists
+if (nationalId) {
+  userData.nationalId = nationalId;
+}
+
+const user = await User.create(userData);
 
   // ===============================
   // 5️⃣ ATTACH FACE
