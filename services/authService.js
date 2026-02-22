@@ -62,14 +62,19 @@ class AuthService {
    * - nationalId uniqueness
    * - biometric handled separately (SAFE)
    */
-  async registerCustomer(data) {
+ 
+async registerCustomer(data) {
   let { fullName, phone, pin, nationalId, biometricId } = data;
+
+  // 🔥 FIX YA MWISHO
+  if (!nationalId || nationalId === "") {
+    nationalId = null;
+  }
 
   phone = normalizePhone(phone);
 
   this.validatePhone(phone);
   this.validatePin(pin);
-
   // ===============================
   // 1️⃣ PHONE DUPLICATE
   // ===============================
