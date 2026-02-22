@@ -34,7 +34,7 @@ const RevenueSchema = new mongoose.Schema(
       enum: [
          
         "payment_charge", // existing
-        "LOAN_FEE",       // ✅ new (your current usage)
+        "loan_fee",       // ✅ new (your current usage)
         "PAYMENT",        // optional future
       ],
       required: true,
