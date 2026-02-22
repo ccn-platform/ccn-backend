@@ -11,32 +11,28 @@ const FaceBiometricSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🔐 Unique face hash
-    faceHash: {
+    // 📱 Device lock
+    deviceId: {
       type: String,
-      required: true,
-      unique: true,
+       required: true,
       index: true,
     },
 
     // 🖼️ TEMP FACE IMAGE (only during registration)
     faceImage: {
       type: String,
-      required: false,
-      select: false, // haitarudi kwenye query
-    },
-
-    // 🧠 optional future
-    faceVector: {
-      type: [Number],
-      required: false,
       select: false,
     },
 
-    // 🔍 optional
+    // 🧠 optional future embedding
+    faceVector: {
+      type: [Number],
+      select: false,
+    },
+
+    // 🔍 optional liveness
     livenessScore: {
       type: Number,
-      required: false,
       min: 0,
       max: 1,
     },
@@ -44,7 +40,7 @@ const FaceBiometricSchema = new mongoose.Schema(
     // 🟡 lifecycle
     status: {
       type: String,
-      enum: ["pending", "linked"],
+      enum: ["pending", "processing", "linked"],
       default: "pending",
       index: true,
     },
@@ -57,7 +53,9 @@ const FaceBiometricSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-FaceBiometricSchema.index({ userId: 1 }, { unique: true, sparse: true });
+FaceBiometricSchema.index(
+  { deviceId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "linked" } }
+);
 
 module.exports = mongoose.model("FaceBiometric", FaceBiometricSchema);
