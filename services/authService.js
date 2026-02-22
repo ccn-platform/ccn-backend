@@ -1,4 +1,4 @@
-  const bcrypt = require("bcryptjs");
+    const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 
@@ -78,7 +78,9 @@ async registerCustomer(data) {
   // ===============================
   // 1️⃣ PHONE DUPLICATE
   // ===============================
-  const phoneExists = await User.findOne({ phone });
+   const phoneExists = await User.findOne({
+  phoneNormalized: phone
+});
   if (phoneExists) {
     throw new Error("no tayari una account huwezi kujisajili mara mbili.");
   }
