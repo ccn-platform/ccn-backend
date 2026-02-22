@@ -157,7 +157,7 @@ if (!["active", "overdue"].includes(loan.status)) {
 
     // ===== 6️⃣ HIFADHI REVENUE =====
     await Revenue.create({
-      source: "loan_fee",
+      source: "LOAN_FEE",
       totalFee: loan.totalFee,
       loan: loan._id,
       agent: agentId,
