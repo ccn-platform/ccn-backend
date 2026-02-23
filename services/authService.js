@@ -11,6 +11,7 @@ const idGenerator = require("../utils/idGenerator");
 const normalizePhone = require("../utils/normalizePhone");
 const crypto = require("crypto");
 const pushService = require("./pushService");
+const deviceService = require("./deviceService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "changeThisSecret";
 
@@ -64,7 +65,8 @@ class AuthService {
    */
  
 async registerCustomer(data) {
-  let { fullName, phone, pin, nationalId, biometricId } = data;
+   
+  let { fullName, phone, pin, nationalId, biometricId, deviceId } = data;
 
   // 🔥 FIX YA MWISHO
   if (!nationalId || nationalId === "") {
@@ -131,6 +133,15 @@ if (nationalId) {
 
 const user = await User.create(userData);
 
+// 🔥 DEVICE LINKING (NIDA + FACE)
+ if (deviceId) {
+  await deviceService.linkDevice({
+    deviceId,
+    user,
+  });
+}
+
+ 
   // ===============================
   // 5️⃣ ATTACH FACE
   // ===============================
