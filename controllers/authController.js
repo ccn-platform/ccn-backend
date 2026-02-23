@@ -1,7 +1,51 @@
- const authService = require("../services/authService");
+  const authService = require("../services/authService");
 const User = require("../models/User");
  const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
+ // =============================================
+// 🇹🇿 FULL NAME VALIDATION (LOAN PLATFORM LEVEL)
+// =============================================
+function validateFullNameTZ(fullName) {
+  if (!fullName || typeof fullName !== "string") {
+    throw new Error("Jina kamili linahitajika");
+  }
+
+  const cleaned = fullName.trim().replace(/\s+/g, " ");
+  const parts = cleaned.split(" ");
+
+  // 🔴 lazima majina 3+
+  if (parts.length < 3) {
+    throw new Error("Tafadhali andika majina matatu kamili (mf: Juma Ali Hassan)");
+  }
+
+  for (const name of parts) {
+    // herufi tu
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ]+$/.test(name)) {
+      throw new Error("Majina yasitumie namba au alama");
+    }
+
+    // minimum 3 letters
+    if (name.length < 3) {
+      throw new Error("Kila jina liwe angalau herufi 3");
+    }
+
+    // lazima iwe na vowel → zuia KJMH
+    if (!/[aeiouAEIOU]/.test(name)) {
+      throw new Error("Tafadhali andika majina halisi, si vifupisho");
+    }
+
+    // zuia majina fake kama AAAA
+    if (/^(.)\1+$/.test(name)) {
+      throw new Error("Jina linaonekana si halisi");
+    }
+  }
+
+  // 🔤 AUTO CAPITALIZE
+  return cleaned
+    .split(" ")
+    .map(n => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase())
+    .join(" ");
+}
 
 // 🔥 ADD HAPA JUU YA FILE
  function normalizeNida(nida) {
@@ -46,6 +90,18 @@ class AuthController {
    */
   async registerCustomer(req, res) {
     try {
+
+      // ===============================
+// FULL NAME VALIDATION
+// ===============================
+ try {
+  req.body.fullName = validateFullNameTZ(req.body.fullName);
+} catch (e) {
+  return res.status(400).json({
+    success: false,
+    message: e.message,
+  });
+}
       // -----------------------------
       // Normalize phone (extra safety)
       // -----------------------------
