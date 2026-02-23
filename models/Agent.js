@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 const normalizePhone = require("../utils/normalizePhone");
 
 const AgentSchema = new mongoose.Schema(
