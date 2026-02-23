@@ -1,4 +1,4 @@
-      const FaceBiometric = require("../models/FaceBiometric");
+     const FaceBiometric = require("../models/FaceBiometric");
  
 const {
   SearchFacesByImageCommand,
@@ -53,7 +53,7 @@ async verifyCustomerFace(imageBase64, deviceId) {
     }
 console.log("VERIFY REQUEST:", deviceId);
   // =====================================================
-// DEVICE REUSE CHECK (7 DAYS COOL-DOWN)
+// DEVICE REUSE CHECK (SOFT CHECK ONLY)
 // =====================================================
 const deviceAlreadyLinked = await FaceBiometric.findOne({
   deviceId,
@@ -61,19 +61,8 @@ const deviceAlreadyLinked = await FaceBiometric.findOne({
 }).lean();
 
 if (deviceAlreadyLinked) {
-  const daysSince =
-    (Date.now() - new Date(deviceAlreadyLinked.updatedAt).getTime()) /
-    (1000 * 60 * 60 * 24);
-
-  if (daysSince < 7) {
-    const err = new Error(
-      "Simu hii imetumika hivi karibuni. Jaribu tena baada ya siku chache."
-    );
-    err.code = "DEVICE_RECENT";
-    throw err;
-  }
-
-  console.log("Device reused after 7 days → allowed");
+  console.log("Device reused → allowing new registration (possible new owner)");
+  // HATUZUI — face duplicate check ndiyo identity halisi
 }
 
     const cleanImage = imageBase64.replace(/^data:image\/\w+;base64,/, "");
@@ -82,11 +71,14 @@ if (deviceAlreadyLinked) {
      // =====================================================
 // 1️⃣ AWS DUPLICATE CHECK (FIRST LINE OF DEFENSE)
 // =====================================================
+ const FACE_THRESHOLD =
+  Number(process.env.FACE_MATCH_THRESHOLD) || 80;
+
 const search = await client.send(
   new SearchFacesByImageCommand({
     CollectionId: COLLECTION_ID,
     Image: { Bytes: buffer },
-    FaceMatchThreshold: 80,
+    FaceMatchThreshold: FACE_THRESHOLD,
     MaxFaces: 1,
   })
 );
@@ -218,4 +210,4 @@ if (!biometric) {
 
 const biometricService = new BiometricService();
 module.exports = biometricService;
-module.exports.ensureCollection = ensureCollection;
+module.exports.ensureCollection = ensureCollection; 
