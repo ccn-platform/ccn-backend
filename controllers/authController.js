@@ -15,28 +15,28 @@ function validateFullNameTZ(fullName) {
 
   // 🔴 lazima majina 3+
   if (parts.length < 3) {
-    throw new Error("Tafadhali andika majina matatu kamili (mf: Juma Ali Hassan)");
+    throw new Error("Tafadhali andika majina matatu kamili (kama yalivyo kwenye kitambulisho)");
   }
 
   for (const name of parts) {
     // herufi tu
     if (!/^[A-Za-zÀ-ÖØ-öø-ÿ]+$/.test(name)) {
-      throw new Error("Majina yasitumie namba au alama");
+      throw new Error("Majina yasitumie namba au alama andika kama yalivyo kwenye kitambulisho");
     }
 
     // minimum 3 letters
     if (name.length < 3) {
-      throw new Error("Kila jina liwe angalau herufi 3");
+      throw new Error("rekebisha jina  liwe kamili kama lilivyo kwenye  kitambulisho");
     }
 
     // lazima iwe na vowel → zuia KJMH
     if (!/[aeiouAEIOU]/.test(name)) {
-      throw new Error("Tafadhali andika majina halisi, si vifupisho");
+      throw new Error("Tafadhali andika majina halisi, si vifupisho kama lilivyo kwenye kitambulisho");
     }
 
     // zuia majina fake kama AAAA
     if (/^(.)\1+$/.test(name)) {
-      throw new Error("Jina linaonekana si halisi");
+      throw new Error("Jina linaonekana si halisi weka kama lilivyo kwenye kitambulisho");
     }
   }
 
@@ -60,7 +60,7 @@ function validateFullNameTZ(fullName) {
 
   // lazima ianze na 19 au 20
   if (!(digits.startsWith("19") || digits.startsWith("20"))) {
-    throw new Error("NIDA lazima ianze na 19 au 20");
+    throw new Error("NIDA sio sahihi weka namba ya nida iliyosahihi");
   }
 
   // =========================
@@ -78,7 +78,7 @@ function validateFullNameTZ(fullName) {
   }
 
   // nyingine zote = kosa
-  throw new Error("NIDA si  sahihi");
+  throw new Error("NIDA si  sahihi ");
 }
 
 
@@ -143,7 +143,7 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
 
       return res.status(429).json({
         success: false,
-        message: "Namba hii tayari imesajiliwa kwa NIDA. Umezuiwa masaa 24.",
+        message: " tayari umesha sajiliwa kwa NIDA. Umezuiwa masaa 24.",
       });
     }
 
@@ -171,7 +171,7 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
 
       return res.status(400).json({
         success: false,
-        message: "Namba tayari ipo kwenye mfumo. Jaribu mara moja tu.",
+        message: "inaonekana tayari upo kwenye mfumo . Jaribu tena mara moja tu.",
       });
     }
   }
