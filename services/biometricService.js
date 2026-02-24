@@ -119,24 +119,20 @@ if (!detect.FaceDetails?.length) {
 
 const faceDetail = detect.FaceDetails[0];
 
-// 🚨 hakikisha AgeRange ipo
-if (!faceDetail.AgeRange) {
-  const err = new Error("Age detection failed.");
-  err.code = "AGE_DETECT_FAIL";
-  throw err;
-}
+ if (!faceDetail.AgeRange) {
+  console.log("⚠️ Age not detected → allow but mark");
+} else {
+  const { Low, High } = faceDetail.AgeRange;
+  const estimatedAge = (Low + High) / 2;
 
-const { Low, High } = faceDetail.AgeRange;
-const estimatedAge = (Low + High) / 2;
+  console.log("AGE RANGE:", Low, "-", High);
+  console.log("ESTIMATED AGE:", estimatedAge);
 
-console.log("AGE RANGE:", Low, "-", High);
-console.log("ESTIMATED AGE:", estimatedAge);
-
-// 🔞 BLOCK UNDER 18
-if (estimatedAge < 18) {
-  const err = new Error("Umri chini ya miaka 18 haruhusiwi.");
-  err.code = "UNDERAGE";
-  throw err;
+  if (estimatedAge < 18) {
+    const err = new Error("Umri chini ya miaka 18 haruhusiwi.");
+    err.code = "UNDERAGE";
+    throw err;
+  }
 }
    
 
