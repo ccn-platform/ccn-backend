@@ -16,9 +16,7 @@ const BIOMETRIC_EXPIRY_MINUTES = 10;
 // CREATE AWS COLLECTION (RUNS ON SERVER START)
 // ============================================
 async function ensureCollection() {
-  try {
-     console.log("🔥 INDEXING FACE TO AWS FOR USER:", userId);
-
+  try { 
     await client.send(
       new CreateCollectionCommand({
         CollectionId: COLLECTION_ID,
