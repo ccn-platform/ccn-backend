@@ -68,6 +68,11 @@ async registerCustomer(data) {
    
   let { fullName, phone, pin, nationalId, biometricId, deviceId } = data;
 
+   console.log("REGISTER DATA:", {
+  biometricId,
+  deviceId,
+  nationalId
+}); 
   // 🔥 FIX YA MWISHO
   if (!nationalId || nationalId === "") {
     nationalId = null;
