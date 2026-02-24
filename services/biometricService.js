@@ -139,7 +139,7 @@ if (estimatedAge < 18) {
   throw err;
 }
    
-}
+
 
     // =====================================================
     // 4️⃣ SAVE TEMP BIOMETRIC
