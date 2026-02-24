@@ -71,12 +71,7 @@ console.log("📌 BIOMETRIC ID RECEIVED:", data.biometricId);
 console.log("📱 DEVICE ID RECEIVED:", data.deviceId);
     
   let { fullName, phone, pin, nationalId, biometricId, deviceId } = data;
-
-   
-  biometricId,
-  deviceId,
-  nationalId
-}); 
+ 
   // 🔥 FIX YA MWISHO
   if (!nationalId || nationalId === "") {
     nationalId = null;
