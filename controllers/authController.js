@@ -89,6 +89,8 @@ class AuthController {
    * ======================================================
    */
   async registerCustomer(req, res) {
+    console.log("🔥 REGISTER CONTROLLER HIT");
+console.log("BODY:", req.body);
     try {
 
       // ===============================
