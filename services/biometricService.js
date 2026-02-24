@@ -120,14 +120,17 @@ if (existingPending) {
 
     const faceDetail = detect.FaceDetails[0];
 
-     if (faceDetail?.AgeRange) {
-  const ageLow = faceDetail.AgeRange.Low;
+ const { Low, High } = faceDetail.AgeRange;
+const estimatedAge = (Low + High) / 2;
 
-  if (ageLow < 16) {
-    const err = new Error("Mtoto haruhusiwi kujisajili.");
-    err.code = "UNDERAGE";
-    throw err;
-  }
+console.log("AGE RANGE:", Low, "-", High);
+console.log("ESTIMATED AGE:", estimatedAge);
+
+if (estimatedAge < 18) {
+  const err = new Error("Umri chini ya miaka 18 haruhusiwi.");
+  err.code = "UNDERAGE";
+  throw err;
+}
 }
 
     // =====================================================
