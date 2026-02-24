@@ -160,7 +160,10 @@ if (existingPending) {
   // ATTACH FACE AFTER USER CREATED
   // ====================================================
   async attachBiometricToUser({ biometricId, userId, imageBase64 }) {
-   
+
+       console.log("🔥 ATTACH BIOMETRIC CALLED");
+       console.log("🆔 biometricId:", biometricId);
+       console.log("👤 userId:", userId);
     // 🔴 ADD HII HAPA JUU
   if (!imageBase64) {
     throw new Error("Face image missing");
