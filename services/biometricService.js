@@ -111,26 +111,34 @@ if (existingPending) {
         Attributes: ["DEFAULT"],
       })
     );
+if (!detect.FaceDetails?.length) {
+  const err = new Error("Face haijaonekana vizuri.");
+  err.code = "NO_FACE";
+  throw err;
+}
 
-    if (!detect.FaceDetails?.length) {
-      const err = new Error("Face haijaonekana vizuri.");
-      err.code = "NO_FACE";
-      throw err;
-    }
+const faceDetail = detect.FaceDetails[0];
 
-    const faceDetail = detect.FaceDetails[0];
+// 🚨 hakikisha AgeRange ipo
+if (!faceDetail.AgeRange) {
+  const err = new Error("Age detection failed.");
+  err.code = "AGE_DETECT_FAIL";
+  throw err;
+}
 
- const { Low, High } = faceDetail.AgeRange;
+const { Low, High } = faceDetail.AgeRange;
 const estimatedAge = (Low + High) / 2;
 
 console.log("AGE RANGE:", Low, "-", High);
 console.log("ESTIMATED AGE:", estimatedAge);
 
+// 🔞 BLOCK UNDER 18
 if (estimatedAge < 18) {
   const err = new Error("Umri chini ya miaka 18 haruhusiwi.");
   err.code = "UNDERAGE";
   throw err;
 }
+   
 }
 
     // =====================================================
