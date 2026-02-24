@@ -65,10 +65,14 @@ class AuthService {
    */
  
 async registerCustomer(data) {
-   
+
+    console.log("🚀 REGISTER SERVICE CALLED");
+console.log("📌 BIOMETRIC ID RECEIVED:", data.biometricId);
+console.log("📱 DEVICE ID RECEIVED:", data.deviceId);
+    
   let { fullName, phone, pin, nationalId, biometricId, deviceId } = data;
 
-   console.log("REGISTER DATA:", {
+   
   biometricId,
   deviceId,
   nationalId
