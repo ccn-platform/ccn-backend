@@ -76,7 +76,7 @@ if (deviceAlreadyLinked) {
 // 1️⃣ AWS DUPLICATE CHECK (FIRST LINE OF DEFENSE)
 // =====================================================
  const FACE_THRESHOLD =
-  Number(process.env.FACE_MATCH_THRESHOLD) || 80;
+  Number(process.env.FACE_MATCH_THRESHOLD) || 90;
 
 const search = await client.send(
   new SearchFacesByImageCommand({
