@@ -186,6 +186,7 @@ if (!biometric) {
     const buffer = Buffer.from(cleanImage, "base64");
     // save to AWS
     try {
+         console.log("✅ FACE SAVED TO AWS");
        await client.send(
        new IndexFacesCommand({
         CollectionId: COLLECTION_ID,
