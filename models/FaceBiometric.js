@@ -53,9 +53,6 @@ const FaceBiometricSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-FaceBiometricSchema.index(
-  { deviceId: 1, status: 1 },
-  { unique: true, partialFilterExpression: { status: "linked" } }
-);
+ 
 
 module.exports = mongoose.model("FaceBiometric", FaceBiometricSchema);
