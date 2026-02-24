@@ -120,15 +120,15 @@ if (existingPending) {
 
     const faceDetail = detect.FaceDetails[0];
 
-    if (faceDetail?.AgeRange) {
-      const ageHigh = faceDetail.AgeRange.High;
+     if (faceDetail?.AgeRange) {
+  const ageLow = faceDetail.AgeRange.Low;
 
-      if (ageHigh < 16) {
-        const err = new Error("Mtoto haruhusiwi kujisajili.");
-        err.code = "UNDERAGE";
-        throw err;
-      }
-    }
+  if (ageLow < 16) {
+    const err = new Error("Mtoto haruhusiwi kujisajili.");
+    err.code = "UNDERAGE";
+    throw err;
+  }
+}
 
     // =====================================================
     // 4️⃣ SAVE TEMP BIOMETRIC
