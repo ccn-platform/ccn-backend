@@ -17,13 +17,17 @@ const BIOMETRIC_EXPIRY_MINUTES = 10;
 // ============================================
 async function ensureCollection() {
   try {
+     console.log("🔥 INDEXING FACE TO AWS FOR USER:", userId);
+
     await client.send(
       new CreateCollectionCommand({
         CollectionId: COLLECTION_ID,
       })
     );
     console.log("AWS face collection ready");
-  } catch (err) {
+  } 
+  
+  catch (err) {
     if (err.name !== "ResourceAlreadyExistsException") {
       console.error(err);
     }
