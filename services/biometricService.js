@@ -135,7 +135,7 @@ if (existingPending) {
     // =====================================================
     const biometric = await FaceBiometric.create({
       deviceId,
-      faceImage: cleanImage.slice(0, 120000),
+      faceImage: cleanImage,
       status: "pending",
       expiresAt: new Date(Date.now() + BIOMETRIC_EXPIRY_MINUTES * 60000),
     });
