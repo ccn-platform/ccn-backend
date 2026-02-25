@@ -139,6 +139,9 @@ AuditLogSchema.index({ createdAt: -1 });
 AuditLogSchema.index({ action: 1, createdAt: -1 });
 AuditLogSchema.index({ actor: 1, createdAt: -1 });
 AuditLogSchema.index({ targetType: 1, targetId: 1 });
+AuditLogSchema.index({ loan: 1, createdAt: -1 });
+AuditLogSchema.index({ customer: 1, createdAt: -1 });
+AuditLogSchema.index({ controlNumber: 1, createdAt: -1 });
 // ➕ ADDED FOR MILLIONS SCALE
 AuditLogSchema.index({ loan: 1, action: 1 });
 AuditLogSchema.index({ agent: 1, createdAt: -1 }); // optional
