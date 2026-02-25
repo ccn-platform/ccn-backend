@@ -112,7 +112,7 @@ if (existingPending) {
       })
     );
 if (!detect.FaceDetails?.length) {
-  const err = new Error("Face haijaonekana vizuri.");
+  const err = new Error("sura haijaonekana vizuri.");
   err.code = "NO_FACE";
   throw err;
 }
