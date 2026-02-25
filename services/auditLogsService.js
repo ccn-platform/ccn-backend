@@ -1,4 +1,4 @@
-  const AuditLog = require("../models/AuditLog");
+   const AuditLog = require("../models/AuditLog");
 
 /**
  * ==============================
@@ -112,14 +112,17 @@ class AuditLogsService {
    * ======================================================
    * ADMIN READ (FAST VERSION)
    * ======================================================
-   */
-  async getLogs(filter = {}, limit = 50, skip = 0) {
-    return AuditLog.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-  }
+   */async getLogs(filter = {}, limit = 50, skip = 0) {
+  return AuditLog.find(filter)
+    .populate("actor", "fullName email")
+    .populate("agent", "businessName")
+    .populate("customer", "fullName phone")
+    .populate("loan", "reference status totalPayable")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 }
-
+   
+}
 module.exports = new AuditLogsService();
