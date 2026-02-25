@@ -1,5 +1,4 @@
-  
-
+ 
  const User = require("../models/User");
 const Customer = require("../models/Customer");
 const Agent = require("../models/Agent");
@@ -137,9 +136,9 @@ class AdminService {
    * 6️⃣ GET SYSTEM STATS (Dashboard)
    */
   async getSystemStats() {
- 
+    const totalCustomers = await Customer.countDocuments();
     const totalAgents = await Agent.countDocuments();
-const totalCustomers = await User.countDocuments({ role: "customer" });
+
     const activeLoans = await Loan.countDocuments({
       status: { $in: ["approved", "pending_agent_review"] }
     });
@@ -187,36 +186,32 @@ const totalCustomers = await User.countDocuments({ role: "customer" });
   /**
    * 9️⃣ VIEW ALL CUSTOMERS
    */
- async getAllCustomers() {
-  const customers = await User.find({ role: "customer" })
-    .select("fullName phone systemId isBlocked createdAt")
-    .lean(); // 🔥 muhimu kwa performance
+  async getAllCustomers() {
+    const customers = await Customer.find()
+      .populate("user", "fullName phone systemId");
 
-  return customers.map(user => {
-    if (user.phone) {
-      user.phone = normalizePhone(user.phone);
-    }
-    return user;
-  });
-}
+    return customers.map(customer => {
+      if (customer.user?.phone) {
+        customer.user.phone = normalizePhone(customer.user.phone);
+      }
+      return customer;
+    });
+  }
 
   /**
    * 🔟 GET CUSTOMER DETAILS
    */
- async getCustomerProfile(customerId) {
-  const customer = await User.findOne({
-    _id: customerId,
-    role: "customer"
-  }).select("fullName phone email systemId createdAt isBlocked");
+  async getCustomerProfile(customerId) {
+    const customer = await Customer.findById(customerId)
+      .populate("user");
 
-  if (!customer) return null;
+    if (customer?.user?.phone) {
+      customer.user.phone = normalizePhone(customer.user.phone);
+    }
 
-  if (customer.phone) {
-    customer.phone = normalizePhone(customer.phone);
+    return customer;
   }
 
-  return customer;
-}
   /**
    * 1️⃣1️⃣ GET ALL LOANS (ADMIN VIEW)
    */
