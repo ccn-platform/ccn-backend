@@ -35,43 +35,37 @@ class LoanService {
    * 1️⃣ BORROWING ELIGIBILITY
    * ======================================================
    */
-  async checkBorrowingEligibility(customerId) {
-     const activeControls = await ControlNumber.find({
-  customer: customerId,
-  status: "active",
-}).populate("loan");
+   async checkBorrowingEligibility(customerId) {
 
-// 🚨 HESABU TU ZENYE LOAN AMBAZO SIO PAID
-const unpaidControls = activeControls.filter(
-  cn => cn.loan && cn.loan.status !== "paid"
-);
+  const activeCount = await ControlNumber.countDocuments({
+    customer: customerId,
+    status: "active"
+  });
 
-if (unpaidControls.length >= 3) {
-  return {
-    allowed: false,
-    reason: "Una madeni zaidi ya 3 ambayo bado  hayajalipwa  lipa  ili  kuendelea  kupata huduma  asante.",
-    code: "TOO_MANY_ACTIVE_CN",
-  };
-}
-
-
-     const overdueLoan = await Loan.findOne({
-       customer: customerId,
-       status: "active",
-       isOverdue: true,
-     });
-
-    if (overdueLoan) {
-      return {
-        allowed: false,
-        reason: "Una deni ambalo limepita muda wa kulipa. Lipa sasa ili uendelee kupata huduma.",
-        code: "OVERDUE_LOAN",
-      };
-    }
-
-
-    return { allowed: true };
+  if (activeCount >= 3) {
+    return {
+      allowed: false,
+      reason: "Una madeni zaidi ya 3 lipa  kwanza ili kuendelea kupata huduma  asante",
+      code: "TOO_MANY_ACTIVE_CN"
+    };
   }
+
+  const overdueExists = await Loan.exists({
+    customer: customerId,
+    status: "active",
+    isOverdue: true
+  });
+
+  if (overdueExists) {
+    return {
+      allowed: false,
+      reason: "Una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)",
+      code: "OVERDUE_LOAN"
+    };
+  }
+
+  return { allowed: true };
+}
 
   /**
    * ======================================================
@@ -221,189 +215,139 @@ if (unpaidControls.length >= 3) {
    * ======================================================
    */
   async agentApproveLoanWithItems(agentId, loanId, items) {
-  const loan = await Loan.findById(loanId);
-  if (!loan) throw new Error("Loan haijapatikana");
- /**
- * ======================================================
- * 🔒 FINAL ELIGIBILITY CHECK (BEFORE APPROVAL)
- * ======================================================
- * - Inazuia agent ku-approve mkopo kama mteja
- *   ana madeni matatu (3) au zaidi ambayo hayajalipwa
- */
-const eligibility = await this.checkBorrowingEligibility(loan.customer);
 
-if (!eligibility.allowed) {
-  // 🧾 AUDIT LOG — APPROVAL BLOCKED
-  await auditLogsService.log({
-    action: "LOAN_APPROVAL_BLOCKED",
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    actor: agentId,
-    actorRole: "agent",
+  try {
 
-    targetType: "Loan",
-    targetId: loan._id,
+    const loan = await Loan.findOne(
+      { _id: loanId, status: "pending_agent_review" },
+      null,
+      { session }
+    );
 
-    loan: loan._id,
-    agent: loan.agent,
-    customer: loan.customer,
+    if (!loan) {
+      throw new Error("Loan haijapatikana au tayari imeidhinishwa");
+    }
 
-    meta: {
-      reason: eligibility.reason,
-      code: eligibility.code, // e.g. TOO_MANY_ACTIVE_LOANS
-    },
+    // ======================================================
+    // FINAL ELIGIBILITY CHECK
+    // ======================================================
+    const eligibility = await this.checkBorrowingEligibility(loan.customer);
 
-    source: "SYSTEM",
-  });
-
-  // 🚨 MESSAGE ITAKAYOENDA FRONTEND / AGENT
-  throw new Error(
-    eligibility.reason ||
-      "Mteja tayari ana madeni matatu (3) ambayo bado hayajalipwa. " +
-        "Lazima alipe angalau deni moja kabla ya kuidhinisha mkopo mpya."
-  );
-}
-
-
-  const itemsTotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const feeData = feeCalculator.calculateTotalLoan(itemsTotal);
-
-  /**
-   * ======================================================
-   * ✅ SAFE LEDGER INITIALIZATION (NO BREAKING CHANGES)
-   * ======================================================
-   * - Hii ndiyo chanzo cha ukweli wa malipo
-   * - PaymentService + splitService hutegemea fields hizi
-   */
-  const beforeSnapshot = {
-    status: loan.status,
-    amount: loan.amount,
-  };
-
-  Object.assign(loan, {
-    // 📦 Items
-    items,
-    itemsTotal,
-
-    // 💰 Amounts
-    amount: itemsTotal,
-    applicationFee: feeData.applicationFee,
-    approvalFee: feeData.approvalFee,
-    totalFee: feeData.totalFee,
-    totalPayable: feeData.totalLoanAmount,
-
-    // 📊 LEDGER (MUHIMU SANA)
-    principalRemaining: itemsTotal,
-    feesRemaining: feeData.totalFee,
-    penaltiesRemaining: loan.penaltiesRemaining || 0,
-    amountPaid: 0,
-
-    // 📌 STATUS
-    status: "active",
-    activatedAt: new Date(),
-  });
-
-  await loan.save();
-  
-  await Revenue.create({
-  source: "LOAN_FEE",
-  totalFee: feeData.totalFee,   // ADA HALISI YA MKOPO
-  loan: loan._id,
-  agent: agentId,
-  customer: loan.customer,
-});
-
-   await auditLogsService.log({
-  action: "LOAN_APPROVED",
-
+    if (!eligibility.allowed) {
+      await auditLogsService.log({
+  action: "LOAN_APPROVAL_BLOCKED",
   actor: agentId,
   actorRole: "agent",
-
-  targetType: "Loan",
-  targetId: loan._id,
-
   loan: loan._id,
   agent: loan.agent,
   customer: loan.customer,
+  meta: { reason: eligibility.reason, code: eligibility.code },
+  source: "SYSTEM",
+}).catch(() => {});
 
-  // ======================
-  // STATUS SNAPSHOT
-  // ======================
-  before: beforeSnapshot,
+      throw new Error(eligibility.reason);
+    }
 
-  after: {
-    status: loan.status,
-    amount: loan.amount,
-    itemsTotal,
-    applicationFee: feeData.applicationFee,
-    approvalFee: feeData.approvalFee,
-    totalFee: feeData.totalFee,
-    totalPayable: loan.totalPayable,
-    activatedAt: loan.activatedAt,
-  },
+    // ======================================================
+    // CALCULATE
+    // ======================================================
+    const itemsTotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
 
-  // ======================
-  // ORDER SNAPSHOT (FINAL)
-  // ======================
-  meta: {
-    orderSnapshot: {
-      items: items.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
-        total: i.price * i.quantity,
-      })),
+    const feeData = feeCalculator.calculateTotalLoan(itemsTotal);
 
-      itemsCount: items.length,
+    const beforeSnapshot = {
+      status: loan.status,
+      amount: loan.amount,
+    };
+
+    Object.assign(loan, {
+      items,
       itemsTotal,
-
+      amount: itemsTotal,
       applicationFee: feeData.applicationFee,
       approvalFee: feeData.approvalFee,
       totalFee: feeData.totalFee,
+      totalPayable: feeData.totalLoanAmount,
+      principalRemaining: itemsTotal,
+      feesRemaining: feeData.totalFee,
+      penaltiesRemaining: loan.penaltiesRemaining || 0,
+      amountPaid: 0,
+      status: "active",
+      activatedAt: new Date(),
+    });
 
-      totalPayable: loan.totalPayable,
-      repaymentPeriod: loan.repaymentPeriod,
-      dueDate: loan.dueDate,
-    },
-  },
+    await loan.save({ session });
 
-  source: "AGENT",
-});
+    await Revenue.create([{
+      source: "LOAN_FEE",
+      totalFee: feeData.totalFee,
+      loan: loan._id,
+      agent: agentId,
+      customer: loan.customer,
+    }], { session });
 
-  // 🔗 CREDIT HISTORY (HAIGUSWI)
-  await creditHistoryService.onLoanApproved(loan);
+    const controlNumberArr = await ControlNumber.create([{
+      loan: loan._id,
+      customer: loan.customer,
+      agent: loan.agent,
+      amount: loan.totalPayable,
+      status: "active",
+      reference: generateRef("CN"),
+    }], { session });
 
-  // 🔢 CONTROL NUMBER (KAMA ULIVYOKUWA)
-  const controlNumber = await ControlNumber.create({
-    loan: loan._id,
-    customer: loan.customer,
-    agent: loan.agent,
-    amount: loan.totalPayable,
-    status: "active",
-    reference: generateRef("CN"),
-  });
+    const controlNumber = controlNumberArr[0];
 
-  // 🔔 NOTIFICATION (KAMA ILIVYOKUWA)
-  const User = mongoose.model("User");
-  const customerUser = await User.findById(loan.customer);
+    await session.commitTransaction();
 
-  if (customerUser?.expoPushToken) {
-    await pushService.sendTemplate(
-      customerUser.expoPushToken,
-      "CONTROL_NUMBER",
-      {
-        cn: controlNumber.reference,
-        amount: loan.totalPayable,
-      }
-    );
+    // ======================================================
+    // LOG + PUSH OUTSIDE TRANSACTION
+    // ======================================================
+    auditLogsService.log({
+      action: "LOAN_APPROVED",
+      actor: agentId,
+      actorRole: "agent",
+      loan: loan._id,
+      agent: loan.agent,
+      customer: loan.customer,
+      before: beforeSnapshot,
+      after: { status: loan.status, totalPayable: loan.totalPayable },
+      source: "AGENT",
+    }).catch(() => {});
+
+    creditHistoryService.onLoanApproved(loan).catch(() => {});
+
+    setImmediate(async () => {
+      try {
+        const User = mongoose.model("User");
+        const customerUser = await User.findById(loan.customer);
+        if (customerUser?.expoPushToken) {
+          await pushService.sendTemplate(
+            customerUser.expoPushToken,
+            "CONTROL_NUMBER",
+            {
+              cn: controlNumber.reference,
+              amount: loan.totalPayable,
+            }
+          );
+        }
+      } catch {}
+    });
+
+    return { loan, controlNumber };
+
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
-
-  return { loan, controlNumber };
 }
-
 
   /**
    * ======================================================
@@ -519,52 +463,51 @@ if (!eligibility.allowed) {
     return { rejected: true, loan };
   }
 }
- /**
- * ======================================================
- * 🆕 AUTO MARK OVERDUE LOANS (SAFE VERSION)
- * ======================================================
- * - HAIBADILISHI status ya loan
- * - Inahifadhi history ya overdue
- * - Inaruhusu malipo kuendelea
- */
+ 
 async function markOverdueLoans() {
   const now = new Date();
+  const BATCH_SIZE = 500;
 
-  const loans = await Loan.find({
-     status: "active",
-    dueDate: { $lt: now },
-    isOverdue: { $ne: true }, // avoid repeat
-  });
+  while (true) {
+    // Chukua batch ndogo tu
+    const loans = await Loan.find({
+      status: "active",
+      dueDate: { $lt: now },
+      isOverdue: { $ne: true },
+    })
+      .select("_id agent customer") // punguza payload
+      .limit(BATCH_SIZE)
+      .lean();
 
-  for (const loan of loans) {
-    loan.isOverdue = true;
-    loan.overdueAt = now;
+    if (!loans.length) break;
 
-    // HATUBADILISHI STATUS
-    // loan.status remains "approved"
+    const ids = loans.map(l => l._id);
 
-    await loan.save();
-    await auditLogsService.log({
+    // 🔥 Bulk update (haraka sana)
+    await Loan.updateMany(
+      { _id: { $in: ids } },
+      { $set: { isOverdue: true, overdueAt: now } }
+    );
+
+    // 🔥 Tengeneza audit logs kwa bulk
+    const logs = loans.map(l => ({
       action: "LOAN_MARKED_OVERDUE",
-
       actor: null,
       actorRole: "system",
-
       targetType: "Loan",
-      targetId: loan._id,
-
-      loan: loan._id,
-      agent: loan.agent,
-      customer: loan.customer,
-
+      targetId: l._id,
+      loan: l._id,
+      agent: l.agent,
+      customer: l.customer,
       before: { isOverdue: false },
       after: { isOverdue: true },
-
       source: "AUTOMATION",
-   });
+    }));
 
+    // Hakikisha auditLogsService ina method ya bulk insert
+    await auditLogsService.bulkInsert(logs);
   }
 }
 
+ 
 module.exports = new LoanService();
-  
