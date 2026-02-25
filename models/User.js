@@ -1,6 +1,3 @@
-   
-
- 
  const mongoose = require("mongoose");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADD THIS
 
