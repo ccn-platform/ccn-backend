@@ -1,4 +1,4 @@
-const AuditLog = require("../models/AuditLog");
+  const AuditLog = require("../models/AuditLog");
 
 /**
  * ==============================
@@ -36,99 +36,90 @@ function buildSnapshots(payload, meta = {}) {
 }
 
 class AuditLogsService {
+
   /**
    * ======================================================
-   * CORE AUDIT LOGGER (HARDENED)
+   * CORE AUDIT LOGGER (MILLIONS SAFE)
    * ======================================================
    */
   async log(payload) {
-    const {
-      action,
-      actor,
-      actorRole = "system",
-      targetType = null,
-      targetId = null,
-      loan = null,
-      agent = null,
-      customer = null,
-      controlNumber = null,
-      before = null,
-      after = null,
-      meta = {},
-      source = "SYSTEM",
-      ipAddress = null,
-      userAgent = null,
-    } = payload;
+    try {
+      const {
+        action,
+        actor,
+        actorRole = "system",
+        targetType = null,
+        targetId = null,
+        loan = null,
+        agent = null,
+        customer = null,
+        controlNumber = null,
+        before = null,
+        after = null,
+        meta = {},
+        source = "SYSTEM",
+        ipAddress = null,
+        userAgent = null,
+      } = payload;
 
-    if (!action) {
-      throw new Error("AuditLog action is required");
+      if (!action) return;
+
+      const finalTargetType = targetType ?? (loan ? "Loan" : null);
+      const finalTargetId = targetId ?? loan ?? null;
+
+      const metaWithSnapshots = buildSnapshots(payload, meta);
+
+      return await AuditLog.create({
+        action,
+        actor,
+        actorRole,
+        targetType: finalTargetType,
+        targetId: finalTargetId,
+        loan,
+        agent,
+        customer,
+        controlNumber,
+        before,
+        after,
+        meta: metaWithSnapshots,
+        source,
+        ipAddress,
+        userAgent,
+      });
+
+    } catch (err) {
+      console.error("Audit log failed:", err.message);
+      return null; // IMPORTANT: usivunje mfumo
     }
-
-    if (["admin", "agent", "customer"].includes(actorRole) && !actor) {
-      throw new Error("Actor is required for human actions");
-    }
-
-    if (action.startsWith("LOAN_") && !targetId && !loan) {
-      throw new Error("Loan audit must reference loan");
-    }
-
-    if (before && typeof before !== "object") {
-      throw new Error("AuditLog.before must be object");
-    }
-
-    if (after && typeof after !== "object") {
-      throw new Error("AuditLog.after must be object");
-    }
-
-    const finalTargetType = targetType ?? (loan ? "Loan" : null);
-    const finalTargetId = targetId ?? loan ?? null;
-
-    const metaWithSnapshots = buildSnapshots(payload, meta);
-
-
- return AuditLog.create({
-  action,
-  actor,
-  actorRole,
-  targetType: finalTargetType,
-  targetId: finalTargetId,
-  loan,
-  agent,
-  customer,
-  controlNumber,
-  before,
-  after,
-  meta: metaWithSnapshots, // ✅ FIXED
-  source,
-  ipAddress,
-  userAgent,
-});
-
   }
 
   /**
    * ======================================================
-   * ADMIN READ-ONLY QUERIES
+   * BULK INSERT (VERY IMPORTANT)
    * ======================================================
    */
-   async getLogs(filter = {}, limit = 50, skip = 0) {
-  return AuditLog.find(filter)
-    .populate("actor", "fullName email")
-    .populate("agent", "fullName phone")
-    .populate("customer", "fullName phone")
-    .populate({
-      path: "loan",
-      select: "controlNumber amount status",
-      populate: [
-        { path: "customer", select: "fullName phone" },
-        { path: "agent", select: "fullName phone" },
-      ],
-    })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-}
+  async bulkInsert(logs) {
+  if (!logs || !logs.length) return;
 
+  try {
+    return await AuditLog.insertMany(logs, { ordered: false });
+  } catch (err) {
+    console.error("Audit bulk insert failed:", err.message);
+    return null;
+  }
+}
+  /**
+   * ======================================================
+   * ADMIN READ (FAST VERSION)
+   * ======================================================
+   */
+  async getLogs(filter = {}, limit = 50, skip = 0) {
+    return AuditLog.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+  }
 }
 
 module.exports = new AuditLogsService();
