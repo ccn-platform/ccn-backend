@@ -187,32 +187,31 @@ class AdminService {
   /**
    * 9️⃣ VIEW ALL CUSTOMERS
    */
-  async getAllCustomers() {
-    const customers = await Customer.find()
-      .populate("user", "fullName phone systemId");
+ async getAllCustomers() {
+  const customers = await User.find({ role: "customer" })
+    .select("fullName phone email systemId createdAt");
 
-    return customers.map(customer => {
-      if (customer.user?.phone) {
-        customer.user.phone = normalizePhone(customer.user.phone);
-      }
-      return customer;
-    });
-  }
+  return customers.map(user => {
+    if (user.phone) {
+      user.phone = normalizePhone(user.phone);
+    }
+    return user;
+  });
+}
 
   /**
    * 🔟 GET CUSTOMER DETAILS
    */
-  async getCustomerProfile(customerId) {
-    const customer = await Customer.findById(customerId)
-      .populate("user");
+ async getCustomerProfile(customerId) {
+  const customer = await Customer.findById(customerId)
+    .populate("user");
 
-    if (customer?.user?.phone) {
-      customer.user.phone = normalizePhone(customer.user.phone);
-    }
-
-    return customer;
+  if (customer?.user?.phone) {
+    customer.user.phone = normalizePhone(customer.user.phone);
   }
 
+  return customer;
+}
   /**
    * 1️⃣1️⃣ GET ALL LOANS (ADMIN VIEW)
    */
