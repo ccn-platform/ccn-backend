@@ -137,9 +137,9 @@ class AdminService {
    * 6️⃣ GET SYSTEM STATS (Dashboard)
    */
   async getSystemStats() {
-    const totalCustomers = await Customer.countDocuments();
+ 
     const totalAgents = await Agent.countDocuments();
-
+const totalCustomers = await User.countDocuments({ role: "customer" });
     const activeLoans = await Loan.countDocuments({
       status: { $in: ["approved", "pending_agent_review"] }
     });
@@ -203,15 +203,20 @@ class AdminService {
    * 🔟 GET CUSTOMER DETAILS
    */
  async getCustomerProfile(customerId) {
-  const customer = await Customer.findById(customerId)
-    .populate("user");
+  const customer = await User.findOne({
+    _id: customerId,
+    role: "customer"
+  }).select("fullName phone email systemId createdAt isBlocked");
 
-  if (customer?.user?.phone) {
-    customer.user.phone = normalizePhone(customer.user.phone);
+  if (!customer) return null;
+
+  if (customer.phone) {
+    customer.phone = normalizePhone(customer.phone);
   }
 
   return customer;
 }
+ 
   /**
    * 1️⃣1️⃣ GET ALL LOANS (ADMIN VIEW)
    */
