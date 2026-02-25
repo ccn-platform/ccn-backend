@@ -189,7 +189,8 @@ const totalCustomers = await User.countDocuments({ role: "customer" });
    */
  async getAllCustomers() {
   const customers = await User.find({ role: "customer" })
-    .select("fullName phone email systemId createdAt");
+    .select("fullName phone systemId isBlocked createdAt")
+    .lean(); // 🔥 muhimu kwa performance
 
   return customers.map(user => {
     if (user.phone) {
@@ -216,7 +217,6 @@ const totalCustomers = await User.countDocuments({ role: "customer" });
 
   return customer;
 }
- 
   /**
    * 1️⃣1️⃣ GET ALL LOANS (ADMIN VIEW)
    */
