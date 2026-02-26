@@ -73,15 +73,30 @@ class LoanService {
    * ======================================================
    */
   async createLoanRequest({ customer, agent, items, repaymentPeriod }) {
+      const User = mongoose.model("User");
     if (!agent) throw new Error("Agent ID inahitajika.");
     if (!repaymentPeriod || repaymentPeriod < 1)
       throw new Error("Weka muda sahihi wa kulipa mkopo.");
     if (!items || !Array.isArray(items) || items.length === 0)
       throw new Error("Ongeza bidhaa angalau moja.");
+ 
+ const eligibility = await this.checkBorrowingEligibility(customer);
 
-    const eligibility = await this.checkBorrowingEligibility(customer);
-    if (!eligibility.allowed) throw new Error(eligibility.reason);
+if (!eligibility.allowed) {
 
+  
+  const customerUser = await User.findById(customer);
+
+  if (customerUser?.expoPushToken) {
+    await pushService.sendTemplate(
+      customerUser.expoPushToken,
+      "LOAN_BLOCKED",
+      { reason: eligibility.reason }
+    );
+  }
+
+  throw new Error(eligibility.reason);
+}
       
     const agentDoc = await Agent.findById(agent);
     if (!agentDoc) throw new Error("Wakala hakupatikana.");
@@ -97,35 +112,47 @@ class LoanService {
     const hasProblem = debtResult.debts.some(
       (d) => d.status === "overdue" || d.status === "defaulted"
     );
+ if (hasProblem) {
 
-    if (hasProblem) {
-      // 🔔 PUSH → AGENT (LOAN BLOCKED)
-      if (agentDoc.user) {
-        const User = mongoose.model("User");
-        const agentUser = await User.findById(agentDoc.user);
+  // 🔔 PUSH → AGENT
+  if (agentDoc.user) {
+    const agentUser = await User.findById(agentDoc.user);
 
-        if (agentUser?.expoPushToken) {
-          await pushService.sendTemplate(
-            agentUser.expoPushToken,
-            "LOAN_REJECTED",
-            { name: "Mteja" }
-          );
-        }
-      }
-
-      return {
-        loanCreated: false,
-        requiresAgentReview: true,
-        message: "Mteja ana deni lililo overdue/defaulted.",
-        debts: debtResult.debts,
-        summary: debtResult.summary,
-      };
+    if (agentUser?.expoPushToken) {
+      await pushService.sendTemplate(
+        agentUser.expoPushToken,
+        "LOAN_REJECTED",
+        { name: "Mteja" }
+      );
     }
+  }
+
+  // 🔔 PUSH → CUSTOMER
+  const customerUser = await User.findById(customer);
+
+  if (customerUser?.expoPushToken) {
+    await pushService.sendTemplate(
+      customerUser.expoPushToken,
+      "LOAN_BLOCKED",
+      {
+        reason: "Una deni overdue/defaulted. Lipa kwanza ili kuendelea."
+      }
+    );
+  }
+
+  return {
+    loanCreated: false,
+    requiresAgentReview: true,
+    message: "Mteja ana deni lililo overdue/defaulted.",
+    debts: debtResult.debts,
+    summary: debtResult.summary,
+  };
+}
 
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + repaymentPeriod);
 
-    const User = mongoose.model("User");
+    
     const BusinessCategory = mongoose.model("BusinessCategory");
 
     const customerUser = await User.findById(customer);
