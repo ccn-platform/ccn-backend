@@ -12,13 +12,12 @@ const normalizePhone = require("../utils/normalizePhone");
 const pushService = require("./pushService");
 const deviceService = require("./deviceService");
 
-  if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
-  throw new Error("JWT secrets are not defined");
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET not defined");
 }
 
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-
+const JWT_SECRET = process.env.JWT_SECRET;
+  
 class AuthService { 
 
   validatePin(pin) {
@@ -32,20 +31,20 @@ class AuthService {
    * TOKEN GENERATION
    * ======================================================
    */
-   generateTokens(user) {
+ generateTokens(user) {
   const accessToken = jwt.sign(
     {
       userId: user._id,
       systemId: user.systemId,
       role: user.role,
     },
-    JWT_ACCESS_SECRET,
+    JWT_SECRET,
     { expiresIn: "30m" }
   );
 
   const refreshToken = jwt.sign(
     { userId: user._id },
-    JWT_REFRESH_SECRET,
+    JWT_SECRET,
     { expiresIn: "7d" }
   );
 
