@@ -1,4 +1,4 @@
-    const bcrypt = require("bcryptjs");
+     
 const jwt = require("jsonwebtoken");
 
 
@@ -9,20 +9,17 @@ const BusinessCategory = require("../models/businessCategory");
 const FaceBiometric = require("../models/FaceBiometric"); // 🆕 SAFE ADD
 const idGenerator = require("../utils/idGenerator");
 const normalizePhone = require("../utils/normalizePhone");
-const crypto = require("crypto");
 const pushService = require("./pushService");
 const deviceService = require("./deviceService");
 
-const JWT_SECRET = process.env.JWT_SECRET || "changeThisSecret";
-
-class AuthService {
-   validatePhone(phone) {
-  // normalizePhone tayari inafanya validation kamili
-  // kama phone si sahihi, itatupa error yenye message sahihi
-  normalizePhone(phone);
+  if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error("JWT secrets are not defined");
 }
 
-  
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+class AuthService { 
 
   validatePin(pin) {
     if (!/^\d{4,6}$/.test(pin)) {
@@ -35,26 +32,25 @@ class AuthService {
    * TOKEN GENERATION
    * ======================================================
    */
-  generateTokens(user) {
-    const accessToken = jwt.sign(
-      {
-        userId: user._id,
-        systemId: user.systemId,
-        role: user.role,
-      },
-      JWT_SECRET,
-      { expiresIn: "30m" }
-    );
+   generateTokens(user) {
+  const accessToken = jwt.sign(
+    {
+      userId: user._id,
+      systemId: user.systemId,
+      role: user.role,
+    },
+    JWT_ACCESS_SECRET,
+    { expiresIn: "30m" }
+  );
 
-    const refreshToken = jwt.sign(
-      { userId: user._id },
-      JWT_SECRET + "_REFRESH",
-      { expiresIn: "7d" }
-    );
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
 
-    return { accessToken, refreshToken };
-  }
-
+  return { accessToken, refreshToken };
+}
   /**
    * ======================================================
    * REGISTER CUSTOMER (NIDA or NON-NIDA)
@@ -65,42 +61,22 @@ class AuthService {
    */
  
 async registerCustomer(data) {
-
-    console.log("🚀 REGISTER SERVICE CALLED");
-console.log("📌 BIOMETRIC ID RECEIVED:", data.biometricId);
-console.log("📱 DEVICE ID RECEIVED:", data.deviceId);
-    
+   
   let { fullName, phone, pin, nationalId, biometricId, deviceId } = data;
- 
+  
+   
+
   // 🔥 FIX YA MWISHO
   if (!nationalId || nationalId === "") {
     nationalId = null;
   }
 
-  phone = normalizePhone(phone);
+ 
+  const normalized = normalizePhone(phone);
+    this.validatePin(pin);
 
-  this.validatePhone(phone);
-  this.validatePin(pin);
-  // ===============================
-  // 1️⃣ PHONE DUPLICATE
-  // ===============================
-   const phoneExists = await User.findOne({
-  phoneNormalized: phone
-});
-  if (phoneExists) {
-    throw new Error("no tayari una account huwezi kujisajili mara mbili.");
-  }
-
-  // ===============================
-  // 2️⃣ NIDA DUPLICATE
-  // ===============================
-  if (nationalId) {
-    const nidaExists = await User.findOne({ nationalId });
-    if (nidaExists) {
-      throw new Error("N tayari una account huwezi kujisajili mara mbili.");
-    }
-  }
-
+ 
+   
   // ===============================
   // 3️⃣ FACE DUPLICATE
   // ===============================
@@ -118,24 +94,32 @@ console.log("📱 DEVICE ID RECEIVED:", data.deviceId);
 
   
   // 4️⃣ CREATE USER
-const hashedPin = await bcrypt.hash(pin, 10);
+ 
 const customerId = idGenerator.generateCustomerID();
 
 // build object first
-const userData = {
-  fullName,
-  phone,
-  pin: hashedPin,
+ const userData = {
+  fullName, 
+ phone: normalized,
+  pin,
   role: "customer",
   systemId: customerId,
 };
-
 // only add nationalId if exists
 if (nationalId) {
   userData.nationalId = nationalId;
 }
 
-const user = await User.create(userData);
+ let user;
+
+try {
+  user = await User.create(userData);
+} catch (err) {
+  if (err.code === 11000) {
+    throw new Error("no tayari una Account huwezi  kujisajili mara mbili.");
+  }
+  throw err;
+}
 
 // 🔥 DEVICE LINKING (NIDA + FACE)
  if (deviceId) {
@@ -179,19 +163,24 @@ const user = await User.create(userData);
    * ======================================================
    */
   async loginWithPin({ phone, pin }) {
-    phone = normalizePhone(phone);
 
-    this.validatePhone(phone);
-    this.validatePin(pin);
+    const normalized = normalizePhone(phone);
+this.validatePin(pin);
 
-    const user = await User.findOne({ phone });
+   const user = await User.findOne({ phoneNormalized: normalized }).select("+pin");
     if (!user) throw new Error("Akaunti haipo.");
 
+if (!user.pin) {
+  throw new Error("Authentication error.");
+}
     if (user.blockedUntil && new Date() < user.blockedUntil) {
       throw new Error("Akaunti imezuiwa kwa muda.");
     }
+    if (user.isBlocked || user.isLocked) {
+  throw new Error("Akaunti imefungwa.");
+}
 
-    const match = await bcrypt.compare(pin, user.pin);
+   const match = await user.comparePin(pin);
     if (!match) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
 
@@ -228,16 +217,16 @@ const user = await User.create(userData);
    * REFRESH TOKEN
    * ======================================================
    */
-  async refreshToken(refreshToken) {
-    try {
-      const decoded = jwt.verify(refreshToken, JWT_SECRET + "_REFRESH");
-      const user = await User.findById(decoded.userId);
-      if (!user) throw new Error("User not found.");
-      return this.generateTokens(user);
-    } catch {
-      throw new Error("Refresh token is invalid or expired.");
-    }
+   async refreshToken(refreshToken) {
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) throw new Error("User not found.");
+    return this.generateTokens(user);
+  } catch {
+    throw new Error("Refresh token is invalid or expired.");
   }
+}
 
   /**
    * ======================================================
@@ -246,24 +235,23 @@ const user = await User.create(userData);
    */
   async registerAgent(data) {
     let { fullName, phone, pin, businessName, businessCategoryId } = data;
+ 
+     const normalized = normalizePhone(phone);
 
-    phone = normalizePhone(phone);
-    this.validatePhone(phone);
     this.validatePin(pin);
-
-    const exists = await User.findOne({ phone });
+  const exists = await User.findOne({ phoneNormalized: normalized });
     if (exists) throw new Error("Namba tayari imesajiliwa.");
 
     const category = await BusinessCategory.findById(businessCategoryId);
     if (!category) throw new Error("Business category haipo.");
 
-    const hashedPin = await bcrypt.hash(pin, 10);
+    
     const agentId = idGenerator.generateAgentID?.() || `AG-${Date.now()}`;
 
     const user = await User.create({
       fullName,
-      phone,
-      pin: hashedPin,
+     phone: normalized,
+      pin,
       role: "agent",
       businessName,
       businessCategory: businessCategoryId,
@@ -273,10 +261,9 @@ const user = await User.create(userData);
     await Agent.create({
       user: user._id,
       agentId,
-      normalizedPhone: phone,
+      normalizedPhone: normalized,
       fullName,
-      phone,
-      pin: hashedPin,
+       phone: normalized,
       businessName,
       businessCategory: businessCategoryId,
       isVerified: false,
@@ -289,21 +276,18 @@ const user = await User.create(userData);
 
   async registerAdmin(data) {
     let { fullName, phone, pin } = data;
-
-    phone = normalizePhone(phone);
-    this.validatePhone(phone);
+ const normalized = normalizePhone(phone);
+   
     this.validatePin(pin);
-
-    const exists = await User.findOne({ phone });
-    if (exists) throw new Error("Namba tayari imesajiliwa.");
-
-    const hashedPin = await bcrypt.hash(pin, 10);
+  const exists = await User.findOne({ phoneNormalized: normalized });
+    if (exists) throw new Error("tayari umeshasajiliwa.");
+ 
     const adminId = idGenerator.generateAdminID?.() || `ADM-${Date.now()}`;
 
     const user = await User.create({
       fullName,
-      phone,
-      pin: hashedPin,
+    phone: normalized,
+      pin,
       role: "admin",
       systemId: adminId,
     });
@@ -314,56 +298,59 @@ const user = await User.create(userData);
 // ======================================================
 // SEND RESET PIN CODE
 // ======================================================
-async sendResetPinCode(rawPhone) {
-  const phone = rawPhone;
-  this.validatePhone(phone);
+ async sendResetPinCode(rawPhone) {
 
-  const user = await User.findOne({ phone });
+  // 1️⃣ Normalize phone correctly
+  const normalized = normalizePhone(rawPhone);
+
+  // 2️⃣ Find user
+  const user = await User.findOne({ phoneNormalized: normalized });
   if (!user) return; // usionyeshe kama user haipo
 
+  // 3️⃣ Generate code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
   user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
   user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
   await user.save();
- // ===============================
-// PUSH NOTIFICATION (ikiwa ipo)
-// ===============================
-try {
-  await pushService.sendToUser(user._id, {
-    title: "Reset PIN",
-    body: `Code yako ya kurekebisha PIN ni: ${code}`,
-    type: "PIN_RESET",
-    data: {
-      phone: user.phone, // ⭐ MUHIMU kwa frontend navigation
-    },
-  });
-} catch (err) {
-  console.log("Push failed or no push token");
-}
 
-// ===============================
-// SMS FALLBACK
-// ===============================
-
+  // ===============================
+  // PUSH NOTIFICATION
+  // ===============================
   try {
-    const smsService = require("./smsService"); // hakikisha file ipo
-    await smsService.sendSMS(phone, `Code yako ya PIN ni: ${code}`);
+    await pushService.sendToUser(user._id, {
+      title: "Reset PIN",
+      body: `Code yako ya kurekebisha PIN ni: ${code}`,
+      type: "PIN_RESET",
+      data: {
+        phone: user.phone,
+      },
+    });
+  } catch (err) {
+    console.log("Push failed or no push token");
+  }
+
+  // ===============================
+  // SMS FALLBACK
+  // ===============================
+  try {
+    const smsService = require("./smsService");
+    await smsService.sendSMS(normalized, `Code yako ya PIN ni: ${code}`);
   } catch (err) {
     console.log("SMS failed");
   }
 }
 
-
 // ======================================================
 // RESET PIN
 // ======================================================
-async resetPin({ rawPhone, code, newPin }) {
-  const phone = rawPhone;
-  this.validatePhone(phone);
+ async resetPin({ rawPhone, code, newPin }) {
+
+  const normalized = normalizePhone(rawPhone);
   this.validatePin(newPin);
 
-  const user = await User.findOne({ phone });
+  const user = await User.findOne({ phoneNormalized: normalized });
+
   if (!user) throw new Error("Invalid request");
 
   const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
@@ -375,7 +362,7 @@ async resetPin({ rawPhone, code, newPin }) {
     throw new Error("Code si sahihi au ime-expire");
   }
 
-  user.pin = await bcrypt.hash(newPin, 10);
+  user.pin = newPin; // acha raw
   user.resetPinCode = null;
   user.resetPinExpiresAt = null;
   await user.save();
