@@ -1,4 +1,4 @@
- const jwt = require("jsonwebtoken");
+  const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Agent = require("../models/Agent");
 
@@ -7,26 +7,29 @@ module.exports = async (req, res, next) => {
     // --------------------------------------
     // 1️⃣ GET TOKEN
     // --------------------------------------
-    const authHeader = req.header("Authorization");
- 
-    let token =
-      (authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.replace("Bearer ", "")
-        : null) ||
-      req.query.token ||
-      req.body.token;
+     const authHeader = req.header("Authorization");
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
-      });
-    }
+if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  return res.status(401).json({
+    success: false,
+    message: "Unauthorized",
+  });
+}
 
+const token = authHeader.replace("Bearer ", "");
+
+    
+    
     // --------------------------------------
     // 2️⃣ VERIFY TOKEN
     // --------------------------------------
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+
+if (!JWT_ACCESS_SECRET) {
+  throw new Error("JWT_ACCESS_SECRET not defined");
+}
+
+const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
 
     const userId = decoded.userId || decoded.id;
     const role = decoded.role;
