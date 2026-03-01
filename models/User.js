@@ -1,9 +1,13 @@
+    
+
+ 
  const mongoose = require("mongoose");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADD THIS
+const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema(
   {
-    systemId: { type: String, unique: true },
+     systemId: { type: String },
 
     fullName: { type: String, required: true },
 
@@ -12,21 +16,17 @@ const UserSchema = new mongoose.Schema(
       required: true,
      },
 
-
-    phoneNormalized: {
-      type: String,
-      unique: true,
-      sparse: true,
-      index: true,
-      default: null,
-    },
-
+phoneNormalized: {
+  type: String,
+  default: null,
+},
+    
     nationalId: {
   type: String,
   default: undefined, // muhimu sana
 },
 
-    pin: { type: String, required: true },
+    pin: { type: String, required: true, select: false },
 
     role: {
       type: String,
@@ -81,7 +81,7 @@ const UserSchema = new mongoose.Schema(
      * 🆕 FORGOT PIN / RESET PIN (SAFE ADD)
      * ======================================================
      */
-    resetPinCode: { type: String, default: null },
+ resetPinCode: { type: String, select: false, default: null },
     resetPinExpiresAt: { type: Date, default: null },
 /**
  * ======================================================
@@ -101,8 +101,14 @@ deleteRequestedAt: { type: Date, default: null },
  * ⭐ AUTO NORMALIZE PHONE BEFORE SAVE
  * ======================================================
  */
- UserSchema.pre("save", function (next) {
-  // normalize phone only if changed
+ UserSchema.pre("save", async function (next) {
+
+  // 🔐 HASH PIN
+  if (this.isModified("pin")) {
+    this.pin = await bcrypt.hash(this.pin, 12);
+  }
+
+  // 📱 Normalize phone
   if (this.isModified("phone")) {
     try {
       this.phoneNormalized = normalizePhone(this.phone);
@@ -111,7 +117,7 @@ deleteRequestedAt: { type: Date, default: null },
     }
   }
 
-  // sync push tokens
+  // 🔄 Sync push tokens
   if (this.pushToken && !this.expoPushToken) {
     this.expoPushToken = this.pushToken;
   }
@@ -123,14 +129,37 @@ deleteRequestedAt: { type: Date, default: null },
   next();
 });
 
-
+// 🔐 Compare PIN method
+UserSchema.methods.comparePin = async function (enteredPin) {
+  return await bcrypt.compare(enteredPin, this.pin);
+};
    
  // ===============================
 // 📊 INDEXES FOR PRODUCTION
 // ===============================
- UserSchema.index({ phone: 1 });
-UserSchema.index({ phoneNormalized: 1 });
+ UserSchema.index(
+  { phoneNormalized: 1 },
+  { unique: true, sparse: true }
+);
+// login + search speed
+ 
+// admin filters
+UserSchema.index({ isBlocked: 1 });
+UserSchema.index({ isLocked: 1 });
+UserSchema.index({ blockedUntil: 1 });
+// delete cleanup
+UserSchema.index({ deleteRequested: 1 });
 
+// business users
+UserSchema.index({ businessCategory: 1 });
+
+UserSchema.index({ phoneNormalized: 1, isBlocked: 1 });
+// push notification performance
+ 
+UserSchema.index({ expoPushToken: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ resetPinExpiresAt: 1 });
+UserSchema.index({ systemId: 1 }, { unique: true });
 // unique only when exists
 UserSchema.index(
   { nationalId: 1 },
