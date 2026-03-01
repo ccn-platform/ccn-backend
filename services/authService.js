@@ -1,7 +1,6 @@
-     
+  const crypto = require("crypto");
+ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-
 const User = require("../models/User");
 const Customer = require("../models/Customer");
 const Agent = require("../models/Agent");
@@ -343,30 +342,39 @@ if (!user.pin) {
 // ======================================================
 // RESET PIN
 // ======================================================
- async resetPin({ rawPhone, code, newPin }) {
-
+ 
+async resetPin({ rawPhone, code, newPin }) {
   const normalized = normalizePhone(rawPhone);
   this.validatePin(newPin);
 
   const user = await User.findOne({ phoneNormalized: normalized });
-
   if (!user) throw new Error("Invalid request");
 
-  const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+  const hashedCode = crypto
+    .createHash("sha256")
+    .update(code)
+    .digest("hex");
 
   if (
     user.resetPinCode !== hashedCode ||
+    !user.resetPinExpiresAt ||
     user.resetPinExpiresAt < Date.now()
   ) {
     throw new Error("Code si sahihi au ime-expire");
   }
 
-  user.pin = newPin; // acha raw
+  // 🔐 HASH PIN (MUHIMU SANA)
+  user.pin = await bcrypt.hash(newPin, 10);
+
   user.resetPinCode = null;
   user.resetPinExpiresAt = null;
+  user.loginAttempts = 0;
+  user.blockedUntil = null;
+
   await user.save();
 }
 }
    
   
 module.exports = new AuthService();
+ 
