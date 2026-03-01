@@ -8,7 +8,7 @@ module.exports = async (req, res, next) => {
     // 1️⃣ GET TOKEN
     // --------------------------------------
      const authHeader = req.header("Authorization");
-
+console.log("Authorization Header:", authHeader); // 👈 ONGEZA HII
 if (!authHeader || !authHeader.startsWith("Bearer ")) {
   return res.status(401).json({
     success: false,
