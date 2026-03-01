@@ -1,4 +1,4 @@
-  const jwt = require("jsonwebtoken");
+ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Agent = require("../models/Agent");
 
@@ -7,19 +7,30 @@ module.exports = async (req, res, next) => {
     // --------------------------------------
     // 1️⃣ GET TOKEN
     // --------------------------------------
-     const authHeader = req.header("Authorization");
-console.log("Authorization Header:", authHeader); // 👈 ONGEZA HII
-if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const authHeader = req.header("Authorization");
+
+let token = null;
+
+// 1️⃣ Standard Bearer
+if (authHeader && authHeader.startsWith("Bearer ")) {
+  token = authHeader.replace("Bearer ", "");
+}
+
+// 2️⃣ Fallback (agent compatibility)
+if (!token && req.query.token) {
+  token = req.query.token;
+}
+
+if (!token && req.body.token) {
+  token = req.body.token;
+}
+
+if (!token) {
   return res.status(401).json({
     success: false,
     message: "Unauthorized",
   });
 }
-
-const token = authHeader.replace("Bearer ", "");
-
-    
-    
     // --------------------------------------
     // 2️⃣ VERIFY TOKEN
     // --------------------------------------
@@ -76,3 +87,4 @@ const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
     });
   }
 };
+ 
