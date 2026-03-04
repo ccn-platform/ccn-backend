@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const AgentFeeSchema = new mongoose.Schema(
   {
@@ -20,7 +20,7 @@ const AgentFeeSchema = new mongoose.Schema(
     },
 
     // ✅ FIXED
-    plan: {
+     plan: {
   type: String,
   enum: [
     "FREE_TRIAL",   // ✅ ONGEZA HII TU
@@ -58,6 +58,9 @@ const AgentFeeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+AgentFeeSchema.index({ agent: 1, status: 1 });
+AgentFeeSchema.index({ agent: 1, endDate: 1 });
 
 module.exports =
   mongoose.models.AgentFee ||
