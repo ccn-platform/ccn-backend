@@ -1,14 +1,14 @@
   const mongoose = require("mongoose");
 const AgentFee = require("../models/agentFee");
 const AgentFeePayment = require("../models/agentFeePayment");
-const ControlNumber = require("../models/controlNumber");
+ 
 const Agent = require("../models/Agent");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 
 const generateReference = require("../utils/generateReference");
-
+ const clickpesaService = require("./clickpesaService");
 /**
  * ======================================================
  * PAYMENT FEE PLANS
@@ -118,10 +118,7 @@ async createInitialFee(agentId) {
 async checkStatus(agentId) {
   const agentObjectId = await resolveAgentObjectId(agentId);
 
-  let fee = await AgentFee.findOne({ agent: agentObjectId }).sort({
-    createdAt: -1,
-  });
-
+  let fee = await AgentFee.findOne({ agent: agentObjectId });
   if (!fee) {
     fee = await this.createInitialFee(agentObjectId);
   }
@@ -169,71 +166,55 @@ return {
    * REQUEST PAYMENT (PLAN REQUIRED)
    * ======================================================
    */
-  async requestPayment(agentId, planKey) {
-    const plan = PAYMENT_FEE_PLANS[planKey];
-    if (!plan) throw new Error("Payment plan haipo");
+   async requestPayment(agentId, planKey) {
 
-    const agentObjectId = await resolveAgentObjectId(agentId);
+  const plan = PAYMENT_FEE_PLANS[planKey];
+  if (!plan) throw new Error("Payment plan haipo");
 
-    let fee = await AgentFee.findOne({ agent: agentObjectId }).sort({
-      createdAt: -1,
-    });
+  const agentObjectId = await resolveAgentObjectId(agentId);
+  // ⭐ pata phone ya agent kutoka database
+const agent = await Agent.findById(agentObjectId);
 
-    if (!fee) fee = await this.createInitialFee(agentObjectId);
+if (!agent || !agent.phone) {
+  throw new Error("Agent phone haijapatikana");
+}
 
-    const control = await ControlNumber.create({
-      customer: agentObjectId,
-      amount: plan.amount,
-      reference: generateReference.controlNumber(),
-      source: "AGENT_FEE",
-    });
+const phone = agent.phone;
 
-    const payment = await AgentFeePayment.create({
-      agent: agentObjectId,
-      agentFee: fee._id,
-      plan: planKey,
-      amount: plan.amount,
-      amountSnapshot: plan.amount,
-      durationSnapshot: {
-        value: plan.duration.value,
-        unit: plan.duration.unit,
-      },
-      controlNumber: control._id,
-      reference: generateReference.transactionId(),
-      status: "pending",
-    });
+   let fee = await AgentFee.findOne({ agent: agentObjectId });
 
-    /**
-     * ======================================================
-     * 🧪 LOCAL DEV AUTO-ACTIVATION (ADD ONLY)
-     * ======================================================
-     */
-    if (process.env.NODE_ENV !== "production") {
-      // mark payment as completed
-      payment.status = "completed";
-      payment.provider = "LOCAL_DEV";
-      payment.processedAt = new Date();
-      await payment.save();
+  if (!fee) fee = await this.createInitialFee(agentObjectId);
 
-      // mark control number as paid
-      control.status = "paid";
-      await control.save();
+  const reference = generateReference.transactionId();
 
-      // activate subscription immediately
-      await this.renew(agentObjectId, payment.reference, plan.amount, {
-        planKey,
-        controlNumber: control._id,
-      });
-    }
+  const payment = await AgentFeePayment.create({
+    agent: agentObjectId,
+    agentFee: fee._id,
+    plan: planKey,
+    amount: plan.amount,
+    amountSnapshot: plan.amount,
+    durationSnapshot: {
+      value: plan.duration.value,
+      unit: plan.duration.unit,
+    },
+    reference: reference,
+    status: "pending",
+    provider: "clickpesa",
+  });
 
-    return {
-      plan: planKey,
-      amount: plan.amount,
-      controlNumber: control.reference,
-      localAutoActivated: process.env.NODE_ENV !== "production",
-    };
-  }
+  // ⭐ MOBILE MONEY PUSH
+  await clickpesaService.mobilePush(
+    phone,
+    plan.amount,
+    reference
+  );
 
+  return {
+    reference,
+    amount: plan.amount,
+    plan: planKey
+  };
+}
   /**
    * ======================================================
    * RENEW FEE (BASED ON PLAN)
@@ -246,10 +227,7 @@ return {
 
     const agentObjectId = await resolveAgentObjectId(agentId);
 
-    let fee = await AgentFee.findOne({ agent: agentObjectId }).sort({
-      createdAt: -1,
-    });
-
+    let fee = await AgentFee.findOne({ agent: agentObjectId });
     if (!fee) fee = await this.createInitialFee(agentObjectId);
 
      const now = dayjs().utc();
@@ -289,45 +267,53 @@ return {
    * ======================================================
    */
   async processPayment({ reference, transactionId, provider }) {
-    const control = await ControlNumber.findOne({ reference });
-    if (!control) throw new Error("Control number haipo");
+ 
+    const payment = await AgentFeePayment.findOne({ reference });
 
-    const payment = await AgentFeePayment.findOne({
-      controlNumber: control._id,
-    });
+if (!payment) {
+  throw new Error("Payment reference haipo");
+}
 
-    if (!payment || payment.status === "completed") {
-      return { message: "Tayari imelipwa" };
-    }
+if (payment.status === "completed") {
+  return { message: "Payment already processed" };
+}
 
-    const planKey = payment.plan;
+// prevent duplicate transaction
+if (payment.transactionId) {
+  return { message: "Duplicate webhook ignored" };
+}
+  const planKey = payment.plan;
 
-    payment.status = "completed";
-    payment.transactionId = transactionId;
-    payment.provider = provider;
-    payment.processedAt = new Date();
-    await payment.save();
+  payment.status = "completed";
+  payment.transactionId = transactionId;
+  payment.provider = provider;
+  payment.processedAt = new Date();
 
-    control.status = "paid";
-    await control.save();
+  await payment.save();
 
-    return this.renew(payment.agent, transactionId, payment.amount, {
-      controlNumber: control._id,
-      planKey,
-    });
-  }
-
+  return this.renew(payment.agent, transactionId, payment.amount, {
+    planKey,
+  });
+}
   /**
    * ======================================================
    * PAYMENT HISTORY
    * ======================================================
    */
-  async getPaymentHistory(agentId) {
-    const agentObjectId = await resolveAgentObjectId(agentId);
-    return AgentFeePayment.find({ agent: agentObjectId }).sort({
-      createdAt: -1,
-    });
-  }
+ /**
+ * ======================================================
+ * PAYMENT HISTORY
+ * ======================================================
+ */
+async getPaymentHistory(agentId) {
+
+  const agentObjectId = await resolveAgentObjectId(agentId);
+
+  return AgentFeePayment.find({ agent: agentObjectId })
+    .sort({ createdAt: -1 })
+    .lean();
+
+}
 }
 
 module.exports = new AgentFeeService();
