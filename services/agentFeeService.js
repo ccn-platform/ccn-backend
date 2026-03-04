@@ -214,7 +214,7 @@ if (existingPending) {
     },
     reference: reference,
       // ⭐ ADD THIS
-  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+  expiresAt: new Date(Date.now() + 2 * 60 * 1000),
 
     status: "pending",
     provider: "clickpesa",
