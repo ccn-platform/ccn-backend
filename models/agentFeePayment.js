@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const AgentFeePaymentSchema = new mongoose.Schema(
   {
@@ -79,12 +79,12 @@ const AgentFeePaymentSchema = new mongoose.Schema(
       default: "mobile_money",
     },
 
-    // 🏦 Provider (azampay, mpesa, internal, n.k.)
     provider: {
       type: String,
-      default: "internal",
-      index: true,
-    },
+       enum: ["clickpesa", "internal", "manual"],
+       default: "clickpesa",
+       index: true,
+     },
 
     // 🔐 Hali ya malipo
     status: {
@@ -122,6 +122,8 @@ AgentFeePaymentSchema.index({ agent: 1, createdAt: -1 });
 AgentFeePaymentSchema.index({ agentFee: 1, status: 1 });
 AgentFeePaymentSchema.index({ plan: 1, status: 1 });
 AgentFeePaymentSchema.index({ source: 1, createdAt: -1 });
+AgentFeePaymentSchema.index({ reference: 1 }, { unique: true });
+AgentFeePaymentSchema.index({ transactionId: 1 });
 
 module.exports =
   mongoose.models.AgentFeePayment ||
