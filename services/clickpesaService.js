@@ -24,7 +24,7 @@ class ClickPesaService {
 
     try {
 
-      const url = `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`;
+      const url = `${process.env.CLICKPESA_BASE_URL}/third-parties/payment-request`;
 
       console.log("ClickPesa URL:", url);
 
