@@ -17,6 +17,7 @@
     "africastalking": "^0.7.8",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "cosine-similarity": "^1.0.1",
     "crypto-js": "^4.2.0",
