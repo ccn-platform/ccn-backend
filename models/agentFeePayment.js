@@ -94,6 +94,10 @@ const AgentFeePaymentSchema = new mongoose.Schema(
       index: true,
     },
 
+    expiresAt: {
+      type: Date,
+      index: true,
+    },
     // ⏱ Lini malipo yalithibitishwa
     processedAt: {
       type: Date,
@@ -124,7 +128,7 @@ AgentFeePaymentSchema.index({ plan: 1, status: 1 });
 AgentFeePaymentSchema.index({ source: 1, createdAt: -1 });
 AgentFeePaymentSchema.index({ reference: 1 }, { unique: true });
 AgentFeePaymentSchema.index({ transactionId: 1 });
-
+AgentFeePaymentSchema.index({ agent: 1, status: 1, expiresAt: 1 });
 module.exports =
   mongoose.models.AgentFeePayment ||
   mongoose.model("AgentFeePayment", AgentFeePaymentSchema);
