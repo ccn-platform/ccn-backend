@@ -87,7 +87,11 @@ const data = await agentFeeService.requestPayment(
  */
  exports.agentFeePaymentWebhook = async (req, res, next) => {
   try {
-const signature = req.headers["x-clickpesa-signature"];
+ const signature = req.headers["x-clickpesa-signature"];
+
+if (!signature) {
+  return res.status(400).send("Missing webhook signature");
+}
 
 const payload = JSON.stringify(req.body);
 
