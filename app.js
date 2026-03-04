@@ -156,7 +156,12 @@ app.get("/privacy-policy", (req, res) => {
 });
 
 
- 
+
+app.get("/server-ip", async (req, res) => {
+  const axios = require("axios");
+  const ip = await axios.get("https://api.ipify.org?format=json");
+  res.json(ip.data);
+});
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
 // =====================================================
@@ -182,3 +187,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
