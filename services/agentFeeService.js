@@ -168,23 +168,38 @@ return {
    */
    async requestPayment(agentId, planKey) {
 
+ await this.cleanupExpiredPendingPayments();
+
   const plan = PAYMENT_FEE_PLANS[planKey];
   if (!plan) throw new Error("Payment plan haipo");
 
   const agentObjectId = await resolveAgentObjectId(agentId);
   // ⭐ pata phone ya agent kutoka database
-const agent = await Agent.findById(agentObjectId);
+ const agent = await Agent.findById(agentObjectId).select("phone");
 
 if (!agent || !agent.phone) {
   throw new Error("Agent phone haijapatikana");
 }
-
+ 
 const phone = agent.phone;
 
-   let fee = await AgentFee.findOne({ agent: agentObjectId });
+    let fee = await AgentFee.findOne({ agent: agentObjectId });
 
   if (!fee) fee = await this.createInitialFee(agentObjectId);
 
+ const existingPending = await AgentFeePayment.findOne({
+  agent: agentObjectId,
+  status: "pending",
+  expiresAt: { $gt: new Date() }
+});
+
+if (existingPending) {
+  return {
+    reference: existingPending.reference,
+    amount: existingPending.amount,
+    plan: existingPending.plan
+  };
+}
   const reference = generateReference.transactionId();
 
   const payment = await AgentFeePayment.create({
@@ -198,17 +213,31 @@ const phone = agent.phone;
       unit: plan.duration.unit,
     },
     reference: reference,
+      // ⭐ ADD THIS
+  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+
     status: "pending",
     provider: "clickpesa",
   });
 
   // ⭐ MOBILE MONEY PUSH
-  await clickpesaService.mobilePush(
-    phone,
-    plan.amount,
-    reference
-  );
+ try {
 
+   const push = await clickpesaService.mobilePush(
+  phone,
+  plan.amount,
+  reference
+);
+
+console.log("ClickPesa push sent:", push);
+
+} catch (error) {
+
+  await AgentFeePayment.deleteOne({ reference });
+
+  throw new Error("Imeshindikana kutuma ombi la malipo");
+
+}
   return {
     reference,
     amount: plan.amount,
@@ -222,12 +251,15 @@ const phone = agent.phone;
    */
   async renew(agentId, paymentRef, amount, meta = {}) {
     const { planKey } = meta;
-    const plan = PAYMENT_FEE_PLANS[planKey];
-    if (!plan) throw new Error("Plan haipo kwa renewal");
+    if (!planKey || !PAYMENT_FEE_PLANS[planKey]) {
+  throw new Error("Payment plan haipo");
+}
+
+const plan = PAYMENT_FEE_PLANS[planKey];
 
     const agentObjectId = await resolveAgentObjectId(agentId);
 
-    let fee = await AgentFee.findOne({ agent: agentObjectId });
+     let fee = await AgentFee.findOne({ agent: agentObjectId });
     if (!fee) fee = await this.createInitialFee(agentObjectId);
 
      const now = dayjs().utc();
@@ -268,43 +300,33 @@ const phone = agent.phone;
    */
   async processPayment({ reference, transactionId, provider }) {
  
-    const payment = await AgentFeePayment.findOne({ reference });
+  const payment = await AgentFeePayment.findOneAndUpdate(
+  { reference, status: "pending" },
+  {
+    status: "completed",
+    transactionId,
+    provider,
+    processedAt: new Date()
+  },
+  { new: true }
+);
 
 if (!payment) {
-  throw new Error("Payment reference haipo");
+  return { message: "Payment already processed or not found" };
 }
 
-if (payment.status === "completed") {
-  return { message: "Payment already processed" };
-}
+const planKey = payment.plan;
 
-// prevent duplicate transaction
-if (payment.transactionId) {
-  return { message: "Duplicate webhook ignored" };
-}
-  const planKey = payment.plan;
-
-  payment.status = "completed";
-  payment.transactionId = transactionId;
-  payment.provider = provider;
-  payment.processedAt = new Date();
-
-  await payment.save();
-
-  return this.renew(payment.agent, transactionId, payment.amount, {
-    planKey,
-  });
+return this.renew(payment.agent, transactionId, payment.amount, {
+  planKey,
+});
 }
   /**
    * ======================================================
    * PAYMENT HISTORY
    * ======================================================
    */
- /**
- * ======================================================
- * PAYMENT HISTORY
- * ======================================================
- */
+
 async getPaymentHistory(agentId) {
 
   const agentObjectId = await resolveAgentObjectId(agentId);
@@ -314,6 +336,23 @@ async getPaymentHistory(agentId) {
     .lean();
 
 }
+/**
+ * ======================================================
+ * CLEANUP OLD PENDING PAYMENTS
+ * ======================================================
+ */
+ async cleanupExpiredPendingPayments() {
+  await AgentFeePayment.updateMany(
+    {
+      status: "pending",
+      expiresAt: { $lt: new Date() }
+    },
+    {
+      status: "failed"
+    }
+  );
 }
+}
+ 
 
 module.exports = new AgentFeeService();
