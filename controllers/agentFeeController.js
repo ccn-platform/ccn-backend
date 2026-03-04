@@ -87,13 +87,14 @@ const data = await agentFeeService.requestPayment(
  */
  exports.agentFeePaymentWebhook = async (req, res, next) => {
   try {
- const signature = req.headers["x-clickpesa-signature"];
+  const signature =
+  req.headers["x-clickpesa-signature"] ||
+  req.headers["X-Clickpesa-Signature"];
 
 if (!signature) {
   return res.status(400).send("Missing webhook signature");
 }
-
-const payload = JSON.stringify(req.body);
+  const payload = JSON.stringify(req.body || {});
 
 const expectedSignature = crypto
   .createHmac("sha256", process.env.CLICKPESA_WEBHOOK_SECRET)
@@ -113,13 +114,17 @@ if (signature !== expectedSignature) {
       return res.sendStatus(200);
     }
 
-    await agentFeeService.processPayment({
-      reference,
-      transactionId: transaction_id,
-      provider: "clickpesa",
-    });
+     try {
+  await agentFeeService.processPayment({
+    reference,
+    transactionId: transaction_id,
+    provider: "clickpesa",
+  });
+} catch (err) {
+  console.error("Webhook processing error:", err.message);
+}
 
-    res.sendStatus(200);
+res.sendStatus(200);
 
   } catch (error) {
     next(error);
