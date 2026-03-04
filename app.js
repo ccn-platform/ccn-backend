@@ -1,4 +1,4 @@
-   const express = require("express");
+    const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -55,6 +55,14 @@ app.use("/api/categories", require("./routes/businessCategoryRoutes"));
 app.use("/api/agents", require("./routes/agentRoutes"));
 // ⭐ PAYOUT ACCOUNTS (AGENT)
 app.use("/api", require("./routes/payoutRoutes"));
+
+// =====================================================
+// CLICKPESA WEBHOOK (RAW BODY REQUIRED)
+// =====================================================
+app.use(
+  "/api/agent-fees/webhook/payment",
+  express.raw({ type: "application/json" })
+);
 
  const agentFeeRoutes = require("./routes/agentFeeRoutes");
 app.use("/api/agent-fees", agentFeeRoutes);
