@@ -1,26 +1,28 @@
+  
+
+
  const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
     mongoose.set("strictQuery", false);
 
-    const mongoURI = process.env.MONGO_URI_ATLAS;
+    const mongoURI =
+      process.env.NODE_ENV === "production"
+        ? process.env.MONGO_URI_ATLAS
+        : process.env.MONGO_URI;
 
-    if (!mongoURI) {
-      throw new Error("❌ MONGO_URI_ATLAS haijawekwa kwenye env");
-    }
+     
+     await mongoose.connect(mongoURI, {
+  maxPoolSize: 50,
+  minPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+});
 
     console.log(
-      "Mongo URI used:",
-      mongoURI.includes("mongodb+srv") ? "ATLAS" : "LOCAL"
+      `✅ MongoDB Connected Successfully (${process.env.NODE_ENV})`
     );
-
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log("✅ MongoDB Connected Successfully");
   } catch (error) {
     console.error("❌ MongoDB Connection Error:", error.message);
     process.exit(1);
