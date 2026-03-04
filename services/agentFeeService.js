@@ -86,22 +86,26 @@ async createInitialFee(agentId) {
     return existing;
   }
 
+  // 🆓 FREE TRIAL: 1 MONTH
+   const start = dayjs().utc();
+   const end = start.add(1, "month");
+
+
   const fee = await AgentFee.create({
-  agent: agentObjectId,
+    agent: agentObjectId,
 
-  startDate: null,
-  endDate: null,
+    startDate: start.toDate(),
+    endDate: end.toDate(),
 
-  status: "inactive",
-  plan: null,
+    status: "active",
+    plan: "FREE_TRIAL",
 
-  amountPaid: 0,
-  renewalCount: 0,
+    amountPaid: 0,
+    renewalCount: 0,
 
-  notes: "Subscription required",
-});
+    notes: "Free trial – first registration (30 days)",
+  });
 
-    
   await syncAgentFeeSnapshot(agentObjectId, fee);
 
   return fee;
