@@ -1,4 +1,4 @@
-  const express = require("express");
+   const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -6,8 +6,9 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const rateLimit = require("express-rate-limit");
 const auditLogsRoutes = require("./routes/auditLogsRoutes");
-
 const app = express();
+ app.set("trust proxy", 1);
+ const compression = require("compression");
 // 🔥 IMPORTANT — DISABLE ETAG GLOBALLY
 app.set("etag", false);
 // =====================================================
@@ -15,7 +16,10 @@ app.set("etag", false);
 // =====================================================
 app.use(helmet());
 app.use(cors());
-app.use(morgan("dev"));
+app.use(compression()); // ⭐ ADD THIS
+ if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
@@ -30,10 +34,11 @@ app.use("/api/legal", legalRoutes);
 // =====================================================
 // 2️⃣ RATE LIMITING
 // =====================================================
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+ const limiter = rateLimit({
+  windowMs: 60 * 1000,
   max: 300,
-  message: "Too many requests — try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use("/api", limiter);
 
@@ -96,14 +101,20 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 // ⭐ USSD ROUTES
 // =====================================================
 app.use("/api/ussd", require("./routes/ussdRoutes"));
- 
+
 const supportRoutes = require("./routes/supportRoutes");
-app.use("/api/support", supportRoutes);
+
+ app.use("/api/support", supportRoutes);
+
 // =====================================================
 // 4️⃣ HEALTH CHECK
 // =====================================================
-app.get("/", (req, res) => {
-  res.send("🔥 CCN Backend API is live & running...");
+ app.get("/", (req, res) => {
+  res.json({
+    status: "OK",
+    service: "CCN Backend",
+    time: new Date()
+  });
 });
 
 // =====================================================
@@ -119,7 +130,7 @@ app.get("/delete-account", (req, res) => {
       <li>Submit your request</li>
     </ol>
     <p>Deletion requests are processed within 48 hours.</p>
-    <p>Support: commoditycreditnetwork@gmail.com</p>
+    <p>Support: support@ccn.co.tz</p>
   `);
 });
 
@@ -136,44 +147,8 @@ app.get("/privacy-policy", (req, res) => {
   `);
 });
 
-// =====================================================
-// 🟢 CLICKPESA CALLBACK WEBHOOK (PAYMENT RESULT)
-// =====================================================
-app.post("/api/clickpesa/callback", async (req, res) => {
-  try {
-    console.log("📩 CLICKPESA CALLBACK:", req.body);
 
-    const data = req.body;
-
-    /**
-     * ClickPesa watatuma data kama:
-     * - reference
-     * - amount
-     * - status (SUCCESS / FAILED)
-     * - phone
-     */
-
-    // mfano: reference ya transaction yako
-    const reference = data.reference || data.transactionReference;
-    const status = data.status || data.result;
-
-    // TODO: hapa utaconnect na mfumo wako wa fees
-    // mfano: update Revenue table
-    // au mark fee paid
-
-    if (status === "SUCCESS") {
-      console.log("💰 PAYMENT SUCCESS:", reference);
-    } else {
-      console.log("❌ PAYMENT FAILED:", reference);
-    }
-
-    res.status(200).send("OK");
-  } catch (err) {
-    console.error("CLICKPESA CALLBACK ERROR:", err.message);
-    res.status(200).send("ERROR HANDLED");
-  }
-});
-
+ 
 // =====================================================
 // 5️⃣ GLOBAL ERROR HANDLER
 // =====================================================
@@ -199,8 +174,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
- 
-
-
-
-
