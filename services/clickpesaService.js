@@ -1,32 +1,35 @@
  const axios = require("axios");
- 
+
 class ClickPesaService {
 
   async mobilePush(phone, amount, reference) {
 
     if (!amount || amount <= 0) {
-  throw new Error("Invalid payment amount");
-}
-    // normalize Tanzania phone format
-  phone = phone.replace(/\D/g, "");
+      throw new Error("Invalid payment amount");
+    }
 
-if (phone.startsWith("0")) {
-  phone = "255" + phone.slice(1);
-}
+    phone = phone.replace(/\D/g, "");
 
-if (!phone.startsWith("255")) {
-  throw new Error("Invalid phone number format");
-}
+    if (phone.startsWith("0")) {
+      phone = "255" + phone.slice(1);
+    }
 
-if (phone.length !== 12) {
-  throw new Error("Invalid Tanzania phone number");
-}
+    if (!phone.startsWith("255")) {
+      throw new Error("Invalid phone number format");
+    }
+
+    if (phone.length !== 12) {
+      throw new Error("Invalid Tanzania phone number");
+    }
+
     try {
 
-     console.log("ClickPesa URL:", `${process.env.CLICKPESA_BASE_URL}/third-parties/payments`);
+      const url = `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`;
 
-const response = await axios.post(
-  `${process.env.CLICKPESA_BASE_URL}/third-parties/payments`,
+      console.log("ClickPesa URL:", url);
+
+      const response = await axios.post(
+        url,
         {
           amount,
           currency: "TZS",
@@ -35,43 +38,41 @@ const response = await axios.post(
           description: "CCN Agent Subscription"
         },
         {
-  headers: {
-    "X-CLIENT-ID": process.env.CLICKPESA_CLIENT_ID,
-    "X-API-KEY": process.env.CLICKPESA_API_KEY,
-    "Content-Type": "application/json"
-  },
-   timeout: 10000,
- validateStatus: status => status >= 200 && status < 300
-} 
-);
-console.log("ClickPesa response:", response.data);
+          headers: {
+            "X-CLIENT-ID": process.env.CLICKPESA_CLIENT_ID,
+            "X-API-KEY": process.env.CLICKPESA_API_KEY,
+            "Content-Type": "application/json"
+          },
+          timeout: 10000,
+          validateStatus: status => status >= 200 && status < 300
+        }
+      );
 
-       if (!response.data) {
-  throw new Error("Empty response from ClickPesa");
-}
+      console.log("ClickPesa response:", response.data);
 
- if (
-  response.status >= 400 ||
-  !response.data ||
-  response.data.status === "FAILED"
-) {
-  console.error("ClickPesa rejected request:", response.data);
-  throw new Error("ClickPesa rejected payment request");
-}
+      if (!response.data) {
+        throw new Error("Empty response from ClickPesa");
+      }
 
-return response.data;
+      if (response.data.status === "FAILED") {
+        console.error("ClickPesa rejected request:", response.data);
+        throw new Error("ClickPesa rejected payment request");
+      }
+
+      return response.data;
 
     } catch (error) {
-console.error("ClickPesa payment error", {
-  reference,
-  phone,
-  amount,
-  error: error.response?.data || error.message
-});
-       
+
+      console.error("ClickPesa payment error", {
+        reference,
+        phone,
+        amount,
+        error: error.response?.data || error.message
+      });
+
       throw new Error("Mobile push request failed");
     }
   }
 }
 
-module.exports = new ClickPesaService(); 
+module.exports = new ClickPesaService();
