@@ -39,9 +39,9 @@ if (phone.length !== 12) {
   },
    timeout: 10000,
  validateStatus: status => status >= 200 && status < 300
-}
-          
-      );
+} 
+);
+console.log("ClickPesa response:", response.data);
 
        if (!response.data) {
   throw new Error("Empty response from ClickPesa");
