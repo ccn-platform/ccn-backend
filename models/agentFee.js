@@ -20,16 +20,15 @@ const AgentFeeSchema = new mongoose.Schema(
     },
 
     // ✅ FIXED
- plan: {
+     plan: {
   type: String,
   enum: [
-    null,
+    "FREE_TRIAL",   // ✅ ONGEZA HII TU
     "WEEKLY",
     "MONTHLY",
     "SEMI_ANNUAL",
     "ANNUAL",
   ],
-  default: null,
   required: false,
   index: true,
 },
