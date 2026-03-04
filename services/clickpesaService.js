@@ -33,7 +33,7 @@ class ClickPesaService {
         {
           amount,
           currency: "TZS",
-          phone,
+          msisdn: phone,
           reference,
           description: "CCN Agent Subscription"
         },
