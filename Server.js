@@ -1,4 +1,4 @@
-  require("dotenv").config();
+require("dotenv").config();
 
 const app = require("./app");
 const connectDB = require("./config/db");
@@ -57,3 +57,4 @@ process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
   process.exit(1);
 });
+
