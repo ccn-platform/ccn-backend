@@ -38,7 +38,7 @@ if (phone.length !== 12) {
     "Content-Type": "application/json"
   },
    timeout: 10000,
-validateStatus: status => status < 500
+ validateStatus: status => status >= 200 && status < 300
 }
           
       );
@@ -47,7 +47,11 @@ validateStatus: status => status < 500
   throw new Error("Empty response from ClickPesa");
 }
 
-if (response.status >= 400) {
+ if (
+  response.status >= 400 ||
+  !response.data ||
+  response.data.status === "FAILED"
+) {
   console.error("ClickPesa rejected request:", response.data);
   throw new Error("ClickPesa rejected payment request");
 }
@@ -67,4 +71,4 @@ console.error("ClickPesa payment error", {
   }
 }
 
-module.exports = new ClickPesaService();
+module.exports = new ClickPesaService(); 
