@@ -22,6 +22,8 @@ if (phone.length !== 12) {
   throw new Error("Invalid Tanzania phone number");
 }
     try {
+      console.log("ClickPesa URL:", `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`);
+
   const response = await axios.post(
         `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`,
         {
