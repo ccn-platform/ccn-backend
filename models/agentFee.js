@@ -20,7 +20,7 @@ const AgentFeeSchema = new mongoose.Schema(
     },
 
     // ✅ FIXED
-   plan: {
+ plan: {
   type: String,
   enum: [
     null,
@@ -32,7 +32,7 @@ const AgentFeeSchema = new mongoose.Schema(
   default: null,
   required: false,
   index: true,
-}
+},
 
     amountPaid: { type: Number, default: 0 },
 
