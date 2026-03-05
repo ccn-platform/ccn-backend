@@ -20,11 +20,12 @@ const sms = africastalking.SMS;
  */
 const sendSMS = async (phone, message) => {
   try {
-    const options = {
-      to: [phone],
-      message: message,
-      // senderId: "CCN", // utaweka hii production ikiruhusiwa
-    };
+     const formattedPhone = "+" + phone;
+
+const options = {
+  to: [formattedPhone],
+  message: message,
+};
 
     const response = await sms.send(options);
 
