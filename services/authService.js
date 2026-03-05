@@ -10,6 +10,7 @@ const idGenerator = require("../utils/idGenerator");
 const normalizePhone = require("../utils/normalizePhone");
 const pushService = require("./pushService");
 const deviceService = require("./deviceService");
+const smsService = require("./smsService");
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET not defined");
@@ -331,14 +332,18 @@ if (!user.pin) {
   // ===============================
   // SMS FALLBACK
   // ===============================
-  try {
-    const smsService = require("./smsService");
-    await smsService.sendSMS(normalized, `Code yako ya PIN ni: ${code}`);
-  } catch (err) {
-    console.log("SMS failed");
-  }
+ 
+// ===============================
+// SMS FALLBACK
+// ===============================
+ try {
+  await smsService.sendSMS(
+    normalized,
+    `CCN: Code yako ya kurekebisha PIN ni ${code}. Itatumika kwa dakika 5.`
+  );
+} catch (err) {
+  console.log("SMS sending failed:", err.message);
 }
-
 // ======================================================
 // RESET PIN
 // ======================================================
