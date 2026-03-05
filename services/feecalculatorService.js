@@ -1,26 +1,26 @@
- // services/feeCalculatorService.js
+  // services/feeCalculatorService.js
 
 class FeeCalculatorService {
   constructor() {
     this.feeTable = [
-      { min: 100, max: 1000, appFee: 50, approvalFee: 50 },
-      { min: 1000, max: 2000, appFee: 100, approvalFee: 100 },
-      { min: 2000, max: 3000, appFee: 150, approvalFee: 150 },
-      { min: 3000, max: 4000, appFee: 200, approvalFee: 200 },
-      { min: 4000, max: 5000, appFee: 250, approvalFee: 200 },
-      { min: 5000, max: 7000, appFee: 300, approvalFee: 250 },
-      { min: 7000, max: 10000, appFee: 400, approvalFee: 500 },
-      { min: 10000, max: 15000, appFee: 500, approvalFee: 700 },
-      { min: 15000, max: 20000, appFee: 500, approvalFee: 800 },
-      { min: 20000, max: 30000, appFee: 700, approvalFee: 800 },
-      { min: 30000, max: 50000, appFee: 1000, approvalFee: 800 },
-      { min: 50000, max: 80000, appFee: 1000, approvalFee: 1500 },
-      { min: 80000, max: 100000, appFee: 1500, approvalFee: 1500 },
-      { min: 100000, max: 150000, appFee: 2500, approvalFee: 2000 },
-      { min: 150000, max: 200000, appFee: 2500, approvalFee: 2500 },
-      { min: 200000, max: 300000, appFee: 2500, approvalFee: 3000 },
-      { min: 300000, max: 500000, appFee: 3000, approvalFee: 3000 },
-      { min: 500000, max: 1000000, appFee: 3000, approvalFee: 4000 },
+      { min: 100, max: 999, appFee: 50, approvalFee: 50 },
+      { min: 1000, max: 1999, appFee: 100, approvalFee: 100 },
+      { min: 2000, max: 2999, appFee: 150, approvalFee: 150 },
+      { min: 3000, max: 3999, appFee: 200, approvalFee: 200 },
+      { min: 4000, max: 4999, appFee: 250, approvalFee: 200 },
+      { min: 5000, max: 6999, appFee: 300, approvalFee: 250 },
+      { min: 7000, max: 9999, appFee: 400, approvalFee: 500 },
+      { min: 10000, max: 14999, appFee: 500, approvalFee: 700 },
+      { min: 15000, max: 19999, appFee: 500, approvalFee: 800 },
+      { min: 20000, max: 29999, appFee: 700, approvalFee: 800 },
+      { min: 30000, max: 49999, appFee: 1000, approvalFee: 800 },
+      { min: 50000, max: 79999, appFee: 1000, approvalFee: 1500 },
+      { min: 80000, max: 99999, appFee: 1500, approvalFee: 1500 },
+      { min: 100000, max: 149999, appFee: 2500, approvalFee: 2000 },
+      { min: 150000, max: 199999, appFee: 2500, approvalFee: 2500 },
+      { min: 200000, max: 299999, appFee: 2500, approvalFee: 3000 },
+      { min: 300000, max: 499999, appFee: 3000, approvalFee: 3000 },
+      { min: 500000, max: 999999, appFee: 3000, approvalFee: 4000 },
     ];
   }
 
