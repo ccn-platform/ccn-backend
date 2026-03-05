@@ -16,7 +16,7 @@ if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET not defined");
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+ const JWT_SECRET = process.env.JWT_SECRET;
   
 class AuthService { 
 
@@ -166,7 +166,7 @@ try {
     const normalized = normalizePhone(phone);
 this.validatePin(pin);
 
-   const user = await User.findOne({ phoneNormalized: normalized }).select("+pin");
+ const user = await User.findOne({ phone: normalized }).select("+pin");
     if (!user) throw new Error("Akaunti haipo.");
 
 if (!user.pin) {
@@ -218,7 +218,7 @@ if (!user.pin) {
    */
    async refreshToken(refreshToken) {
   try {
-    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
     const user = await User.findById(decoded.userId);
     if (!user) throw new Error("User not found.");
     return this.generateTokens(user);
@@ -238,7 +238,7 @@ if (!user.pin) {
      const normalized = normalizePhone(phone);
 
     this.validatePin(pin);
-  const exists = await User.findOne({ phoneNormalized: normalized });
+ const exists = await User.findOne({ phone: normalized });
     if (exists) throw new Error("Namba tayari imesajiliwa.");
 
     const category = await BusinessCategory.findById(businessCategoryId);
@@ -278,7 +278,7 @@ if (!user.pin) {
  const normalized = normalizePhone(phone);
    
     this.validatePin(pin);
-  const exists = await User.findOne({ phoneNormalized: normalized });
+  const exists = await User.findOne({ phone: normalized });
     if (exists) throw new Error("tayari umeshasajiliwa.");
  
     const adminId = idGenerator.generateAdminID?.() || `ADM-${Date.now()}`;
@@ -303,11 +303,11 @@ if (!user.pin) {
   const normalized = normalizePhone(rawPhone);
 
   // 2️⃣ Find user
-  const user = await User.findOne({ phoneNormalized: normalized });
+   const user = await User.findOne({ phone: normalized });
   if (!user) return; // usionyeshe kama user haipo
 
   // 3️⃣ Generate code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+   const code = crypto.randomInt(100000, 999999).toString();
 
   user.resetPinCode = crypto.createHash("sha256").update(code).digest("hex");
   user.resetPinExpiresAt = Date.now() + 5 * 60 * 1000;
@@ -332,11 +332,7 @@ if (!user.pin) {
   // ===============================
   // SMS FALLBACK
   // ===============================
- 
-// ===============================
-// SMS FALLBACK
-// ===============================
- try {
+  try {
   await smsService.sendSMS(
     normalized,
     `CCN: Code yako ya kurekebisha PIN ni ${code}. Itatumika kwa dakika 5.`
@@ -344,6 +340,9 @@ if (!user.pin) {
 } catch (err) {
   console.log("SMS sending failed:", err.message);
 }
+}
+
+
 // ======================================================
 // RESET PIN
 // ======================================================
@@ -352,7 +351,7 @@ async resetPin({ rawPhone, code, newPin }) {
   const normalized = normalizePhone(rawPhone);
   this.validatePin(newPin);
 
-  const user = await User.findOne({ phoneNormalized: normalized });
+ const user = await User.findOne({ phone: normalized });
   if (!user) throw new Error("Invalid request");
 
   const hashedCode = crypto
