@@ -20,12 +20,12 @@ const sms = africastalking.SMS;
  */
 const sendSMS = async (phone, message) => {
   try {
-     const formattedPhone = "+" + phone;
-
-const options = {
-  to: [formattedPhone],
-  message: message,
-};
+   
+const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
+    const options = {
+     to: [formattedPhone],
+     message: message,
+   };
 
     const response = await sms.send(options);
 
