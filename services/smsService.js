@@ -1,63 +1,61 @@
- const axios = require("axios");
+ const AfricasTalking = require("africastalking");
 
-class SmsService {
-
-  async sendSMS(phone, message) {
-
-    if (!phone) {
-      throw new Error("Phone number missing");
-    }
-
-    if (!message) {
-      throw new Error("SMS message missing");
-    }
-
-    const payload = {
-      source_addr: process.env.BEEM_SENDER || undefined,
-      encoding: 0,
-      schedule_time: "",
-      message: message,
-      recipients: [
-        {
-          recipient_id: 1,
-          dest_addr: phone
-        }
-      ]
-    };
-
-    try {
-
-      const response = await axios.post(
-        "https://apisms.beem.africa/v1/send",
-        payload,
-        {
-          auth: {
-            username: process.env.BEEM_API_KEY,
-            password: process.env.BEEM_SECRET_KEY
-          },
-          headers: {
-            "Content-Type": "application/json"
-          },
-          timeout: 10000
-        }
-      );
-
-      console.log("SMS sent:", response.data);
-
-      return response.data;
-
-    } catch (error) {
-
-      console.error(
-        "SMS sending error:",
-        error.response?.data || error.message
-      );
-
-      throw new Error("Failed to send SMS");
-
-    }
-  }
-
+// Hakikisha environment variables zipo
+if (!process.env.AT_API_KEY || !process.env.AT_USERNAME) {
+  throw new Error("Africa's Talking credentials missing in environment variables");
 }
 
-module.exports = new SmsService();
+// Initialize Africa's Talking
+const africastalking = AfricasTalking({
+  apiKey: process.env.AT_API_KEY,
+  username: process.env.AT_USERNAME,
+});
+
+const sms = africastalking.SMS;
+
+/**
+ * Send SMS message
+ * @param {string} phone - Phone number (e.g. +2557XXXXXXXX)
+ * @param {string} message - SMS content
+ */
+const sendSMS = async (phone, message) => {
+  try {
+    const options = {
+      to: [phone],
+      message: message,
+      // senderId: "CCN", // utaweka hii production ikiruhusiwa
+    };
+
+    const response = await sms.send(options);
+
+    console.log("SMS sent successfully:", response);
+
+    return {
+      success: true,
+      data: response,
+    };
+  } catch (error) {
+    console.error("SMS sending failed:", error);
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Send OTP SMS
+ * @param {string} phone
+ * @param {string|number} otp
+ */
+const sendOTP = async (phone, otp) => {
+  const message = `Your CCN verification code is ${otp}. This code will expire in 5 minutes.`;
+
+  return await sendSMS(phone, message);
+};
+
+module.exports = {
+  sendSMS,
+  sendOTP,
+};
