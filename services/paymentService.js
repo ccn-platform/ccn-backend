@@ -184,7 +184,12 @@ await Agent.findByIdAndUpdate(loan.agent, {
  * ======================================================
  */
 async payLoanFee(agentId, loanId, amountPaid) {
-  const loan = await Loan.findById(loanId);
+  const session = await mongoose.startSession();
+session.startTransaction();
+
+try {
+
+  const loan = await Loan.findById(loanId).session(session);
   if (!loan) throw new Error("Mkopo haujapatikana");
 
   if (String(loan.agent) !== String(agentId)) {
@@ -201,19 +206,17 @@ async payLoanFee(agentId, loanId, amountPaid) {
     );
   }
 
-  // 🔒 GUARD — hakikisha ledger ipo
   if (loan.feesRemaining == null) {
     throw new Error("Loan haina ledger sahihi ya ada");
   }
 
-  // 🔥 HII NDIO CHECK MUHIMU SANA
   if (Number(amountPaid) !== Number(loan.feesRemaining)) {
     throw new Error(
       `Ada inayotakiwa ni ${loan.feesRemaining}. Partial payment hairuhusiwi.`
     );
   }
 
-  // ✅ SAWA — FUTA DENI
+  // 🔥 FUTA DENI
   loan.principalRemaining = 0;
   loan.feesRemaining = 0;
   loan.penaltiesRemaining = 0;
@@ -224,22 +227,23 @@ async payLoanFee(agentId, loanId, amountPaid) {
   loan.status = "paid";
   loan.paidAt = new Date();
 
-  await loan.save();
+  await loan.save({ session });
 
   await ControlNumber.updateMany(
     { loan: loan._id, status: "active" },
-    { $set: { status: "paid", closedAt: new Date() } }
+    { $set: { status: "paid", closedAt: new Date() } },
+    { session }
   );
 
-  await Revenue.create({
-    source: "LOAN_FEE", 
+  await Revenue.create([{
+    source: "LOAN_FEE",
     amount: amountPaid,
     totalFee: amountPaid,
     loan: loan._id,
     agent: loan.agent,
-  });
+  }], { session });
 
-  await Payment.create({
+  await Payment.create([{
     loan: loan._id,
     customer: loan.customer,
     amountPaid,
@@ -258,12 +262,25 @@ async payLoanFee(agentId, loanId, amountPaid) {
       mode: "DIRECT",
     },
     processedAt: new Date(),
-  });
+  }], { session });
+
+  await session.commitTransaction();
 
   return {
     success: true,
     message: "Ada yote imelipwa, mkopo umefutwa kikamilifu",
   };
+
+} catch (err) {
+
+  await session.abortTransaction();
+  throw err;
+
+} finally {
+
+  session.endSession();
+
+}
 } 
 /**
  * ======================================================
