@@ -28,32 +28,14 @@ class LoanController {
       return res.json(result);
     } catch (err) {
       console.log("Loan Request Error:", err);
-      return res.status(400).json({ error: err.message });
-    }
-  }
-
-  /** =====================================================
-   * 1️⃣ CUSTOMER → CREATE LOAN (OLD METHOD – SAFE)
-   * ===================================================== */
-  async requestLoan(req, res) {
-    try {
-      const result = await loanService.createLoanRequest({
-        customer: req.user.userId || req.user.id || req.user._id,
-        agent: req.body.agentId,
-        items: req.body.items,
-        repaymentPeriod: req.body.repaymentPeriod,
-      });
-
-      return res.json(result);
-    } catch (err) {
-
       return res.status(400).json({
-       success: false,
-     message: err.message
-  });
+        success: false,
+        message: err.message
+     });
     }
   }
 
+   
   /** =====================================================
    * 2️⃣ CUSTOMER → GET MY LOANS (TOKEN BASED)
    * ===================================================== */
