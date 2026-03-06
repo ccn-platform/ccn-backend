@@ -22,10 +22,11 @@ const paymentSchema = new mongoose.Schema(
       default: null,
     },
 
-    amountPaid: {
-      type: Number,
-      required: true,
-    },
+     amountPaid: {
+       type: Number,
+       required: true,
+       min: 0,
+      },
 
     amount: {
       type: Number,
@@ -37,6 +38,12 @@ const paymentSchema = new mongoose.Schema(
       enum: ["mobile_money", "bank", "cash", "adjustment"],
       default: "mobile_money",
     },
+provider: {
+  type: String,
+  enum: ["MPESA", "TIGOPESA", "AIRTELMONEY", "HALOPESA", "BANK", "SYSTEM"],
+  default: "SYSTEM",
+  index: true,
+},
 
     status: {
       type: String,
@@ -51,15 +58,18 @@ const paymentSchema = new mongoose.Schema(
       default: "FULL",
     },
 
-    reference: {
-      type: String,
-      required: true,
-    },
+  reference: {
+     type: String,
+     required: true,
+     unique: true,
+     index: true,
+   },
 
     transactionId: {
       type: String,
-      index: true,
+      unique: true,
       sparse: true,
+      index: true,
     },
 
     appliedBreakdown: {
@@ -95,10 +105,14 @@ const paymentSchema = new mongoose.Schema(
 // =========================
 // 🔥 INDEXES (MILLIONS SCALE)
 // =========================
+paymentSchema.index({ provider: 1, providerReference: 1 });
+paymentSchema.index({ status: 1, createdAt: -1 });
 paymentSchema.index({ reference: 1 }, { unique: true }); // idempotency
 paymentSchema.index({ loan: 1, createdAt: -1 });        // history per loan
 paymentSchema.index({ customer: 1 });                   // customer reports
-
+paymentSchema.index({ transactionId: 1 });
+paymentSchema.index({ controlNumber: 1 });
+paymentSchema.index({ loan: 1, status: 1 });
 module.exports =
   mongoose.models.Payment ||
   mongoose.model("Payment", paymentSchema);
