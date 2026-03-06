@@ -28,6 +28,7 @@
     "express-rate-limit": "^7.5.1",
     "face-api.js": "^0.22.2",
     "helmet": "^7.2.0",
+    "ioredis": "^5.10.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.6.0",
@@ -49,4 +50,3 @@
     "supertest": "^6.3.4"
   }
 }
-
