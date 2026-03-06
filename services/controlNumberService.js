@@ -1,4 +1,4 @@
- const ControlNumber = require("../models/controlNumber");
+  const ControlNumber = require("../models/controlNumber");
 const Loan = require("../models/Loan");
 const AuditLog = require("../models/AuditLog");
 const generateReference = require("../utils/generateReference");
@@ -12,24 +12,26 @@ class ControlNumberService {
    * ======================================================
    */
   async generateForLoan(loanId) {
-    const loan = await Loan.findById(loanId);
-    if (!loan) throw new Error("Loan haipo.");
+  const loan = await Loan.findById(loanId)
+.select("_id customer totalPayable status")
+.lean();
+  if (!loan) throw new Error("Loan haipo.");
 
-    // 🚫 Kama tayari imelipwa, hairuhusiwi
-    if (loan.status === "paid") {
-      throw new Error("Mkopo tayari umelipwa.");
-    }
+  if (loan.status === "paid") {
+    throw new Error("Mkopo tayari umelipwa.");
+  }
 
-    /**
-     * ✅ RUDISHA CONTROL NUMBER ILIYOPO
-     * Hata kama loan ni overdue
-     */
-    const existing = await ControlNumber.findOne({
-      loan: loanId,
-      status: "active",
-    });
+  // ⭐ FAST CHECK
+  const existing = await ControlNumber.findOne({
+  loan: loan._id,
+  status: "active",
+})
+.select("_id reference amount")
+.lean();
 
-    if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
     /**
      * 🔁 TENGENEZA MPYA (ONLY IF HAKUNA)
@@ -44,20 +46,37 @@ class ControlNumberService {
     } catch (err) {
       generatedNumber = generateReference("CN");
     }
-
-    const controlNumber = await ControlNumber.create({
+ 
+    const result = await ControlNumber.findOneAndUpdate(
+  {
+    loan: loan._id,
+    status: "active",
+  },
+  {
+    $setOnInsert: {
       loan: loan._id,
       customer: loan.customer,
       amount: loan.totalPayable,
       reference: generatedNumber,
       status: "active",
-    });
+    },
+  },
+  {
+    upsert: true,
+    new: true,
+    rawResult: true,
+  }
+);
 
-    await AuditLog.create({
-      action: "CONTROL_NUMBER_CREATED",
-      loan: loan._id,
-      reference: generatedNumber,
-    });
+const controlNumber = result.value;
+     
+if (result?.lastErrorObject?.upserted) {
+  await AuditLog.create({
+    action: "CONTROL_NUMBER_CREATED",
+    loan: loan._id,
+    reference: generatedNumber,
+  });
+}
 
     return controlNumber;
   }
@@ -68,11 +87,14 @@ class ControlNumberService {
    * ======================================================
    */
   async getActiveControl(customerId) {
-    return ControlNumber.findOne({
-      customer: customerId,
-      status: "active",
-    }).sort({ createdAt: -1 });
-  }
+  return ControlNumber.findOne({
+    customer: customerId,
+    status: "active",
+  })
+  .select("reference amount loan createdAt")
+  .sort({ createdAt: -1 })
+  .lean();
+}
 
   /**
  * ======================================================
@@ -82,27 +104,44 @@ class ControlNumberService {
  * - Inatumia bulk update (FAST & SCALABLE)
  * - SALAMA kwa production
  */
-async fixLegacyPaidControlNumbers(customerId = null) {
-  // 1️⃣ Pata loan IDs zote ambazo ziko PAID
-  const paidLoanIds = await Loan.find({ status: "paid" }).distinct("_id");
+ async fixLegacyPaidControlNumbers(customerId = null) {
 
-  if (!paidLoanIds.length) {
-    return { fixed: 0 };
-  }
-
-  // 2️⃣ Tengeneza query ya control numbers
-  const cnQuery = {
-    status: "active",
-    loan: { $in: paidLoanIds },
+  const query = {
+    status: "active"
   };
 
   if (customerId) {
-    cnQuery.customer = customerId;
+    query.customer = customerId;
   }
 
-  // 3️⃣ Bulk update (NO LOOP)
+  const controls = await ControlNumber.find(query)
+    .select("_id loan")
+    .limit(500)
+    .lean();
+
+  if (!controls.length) {
+    return { fixed: 0 };
+  }
+
+  const loanIds = controls.map(c => c.loan);
+
+  const paidLoans = await Loan.find({
+    _id: { $in: loanIds },
+    status: "paid"
+  }).select("_id").lean();
+
+  const paidSet = new Set(paidLoans.map(l => String(l._id)));
+
+  const toUpdate = controls
+    .filter(c => paidSet.has(String(c.loan)))
+    .map(c => c._id);
+
+  if (!toUpdate.length) {
+    return { fixed: 0 };
+  }
+
   const result = await ControlNumber.updateMany(
-    cnQuery,
+    { _id: { $in: toUpdate } },
     {
       $set: {
         status: "paid",
@@ -111,36 +150,40 @@ async fixLegacyPaidControlNumbers(customerId = null) {
     }
   );
 
-  return {
-    fixed: result.modifiedCount,
-  };
+  return { fixed: result.modifiedCount };
 }
-
   /**
    * ======================================================
    * 3️⃣ MARK AS PAID (NO CHANGE)
    * ======================================================
    */
-  async markAsPaid(loanId) {
-    const control = await ControlNumber.findOne({
+ async markAsPaid(loanId) {
+
+  const control = await ControlNumber.findOneAndUpdate(
+    {
       loan: loanId,
       status: "active",
-    });
+    },
+    {
+      $set: {
+        status: "paid",
+        paidAt: new Date(),
+      },
+    },
+    {
+      new: true,
+    }
+  );
 
-    if (!control) return null;
+  if (!control) return null;
 
-    control.status = "paid";
-    await control.save();
+  await AuditLog.create({
+    action: "CONTROL_NUMBER_PAID",
+    loan: loanId,
+    reference: control.reference,
+  });
 
-    await AuditLog.create({
-      action: "CONTROL_NUMBER_PAID",
-      loan: loanId,
-      reference: control.reference,
-    });
-
-    return control;
-  }
+  return control;
 }
-
+}
 module.exports = new ControlNumberService();
- 
