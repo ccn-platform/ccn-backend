@@ -1,4 +1,4 @@
- 
+   
  const express = require("express");
 const router = express.Router();
 
@@ -27,18 +27,7 @@ router.post(
   paymentController.processPayment
 );
 
-/**router.post(
-  "/loans/:loanId/adjust",
-  auth,               // 👈 TUMIA ILIYOPO
-  role("agent"),      // 👈 OPTIONAL BUT RECOMMENDED
-  (req, res) => {
-    req.body.loanId = req.params.loanId;
-    return paymentController.agentAdjustLoan(req, res);
-  }
-);
-
- * PAY LOAN FEE (AGENT)
- */
+ 
 router.post(
   "/pay-fee",
   auth,
@@ -58,4 +47,3 @@ router.post(
 );
 
 module.exports = router;
- 
