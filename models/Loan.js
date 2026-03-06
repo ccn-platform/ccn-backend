@@ -170,4 +170,8 @@ loanSchema.index({ agent: 1, status: 1 });
 loanSchema.index({ customer: 1, status: 1, isOverdue: 1 });
 loanSchema.index({ controlNumber: 1 });
 loanSchema.index({ customer: 1, createdAt: -1 });
+loanSchema.index({ agent: 1, createdAt: -1 });
+loanSchema.index({ status: 1, createdAt: -1 });
+loanSchema.index({ agent: 1, status: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Loan", loanSchema);
