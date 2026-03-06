@@ -112,15 +112,7 @@ if (!eligibility.allowed) {
 
   throw new Error(eligibility.reason);
 }
-// 🔒 Prevent duplicate pending loan requests
-const existingPending = await Loan.exists({
-  customer,
-  status: "pending_agent_review"
-});
-
-if (existingPending) {
-  throw new Error("Una maombi ya mkopo ambayo bado hayajashughulikiwa.");
-}
+ 
  const agentDoc = await Agent.findById(agent)
 .select("user businessCategory businessName agentId systemId")
 .lean();
