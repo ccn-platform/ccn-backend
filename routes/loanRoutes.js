@@ -1,4 +1,4 @@
-  
+   
  
 
    const express = require("express");
@@ -7,7 +7,8 @@
  const loanController = require("../controllers/loanController");
  const auth = require("../middleware/authMiddleware");
  const role = require("../middleware/roleMiddleware");
- 
+ const rateLimiter = require("../middleware/rateLimiter");
+
  /**
   * ======================================================
   * CUSTOMER ROUTES
@@ -18,6 +19,7 @@
    "/request-by-phone",
    auth,
    role("customer"),
+    rateLimiter.default,
    loanController.requestLoanByPhone
  );
  
@@ -26,6 +28,7 @@
    "/my",
    auth,
    role("customer"),
+    rateLimiter.default,
    loanController.getMyLoans
  );
  
@@ -33,6 +36,7 @@
    "/customer/:customerId",
    auth,
    role("customer"),
+    rateLimiter.default,
    loanController.getLoansByCustomer
  );
  
@@ -46,6 +50,7 @@
    "/pending",
    auth,
    role("agent"),
+    rateLimiter.default,
    loanController.getPendingLoans
  );
  
@@ -53,6 +58,7 @@
    "/:loanId/agent-approve",
    auth,
    role("agent"),
+    rateLimiter.default,
    loanController.agentApproveLoan
  );
  
@@ -78,6 +84,7 @@ router.get(
    "/:loanId/agent-reject",
    auth,
    role("agent"),
+    rateLimiter.default,
    loanController.agentRejectLoan
  );
  
@@ -88,6 +95,7 @@ router.get(
    "/:loanId/customer-debts",
    auth,
    role("agent"),
+    rateLimiter.default,
    loanController.getCustomerDebtsForLoanReview
  );
  
@@ -96,20 +104,22 @@ router.get(
   * ADMIN SNAPSHOT ROUTES
   * ======================================================
   */
- 
  router.get(
-   "/admin/snapshots",
-   auth,
-   role("admin"),
-   loanController.adminGetLoansWithSnapshot
- );
+  "/admin/snapshots",
+  auth,
+  role("admin"),
+  rateLimiter.default,
+  loanController.adminGetLoansWithSnapshot
+);
+
+router.get(
+  "/admin/snapshots/:loanId",
+  auth,
+  role("admin"),
+  rateLimiter.default,
+  loanController.adminGetLoanSnapshot
+);
  
- router.get(
-   "/admin/snapshots/:loanId",
-   auth,
-   role("admin"),
-   loanController.adminGetLoanSnapshot
- );
  /**
   * ======================================================
   * AGENT SNAPSHOT ROUTES
@@ -120,6 +130,7 @@ router.get(
    "/agent/snapshots",
    auth,
    role("agent"),
+   rateLimiter.default,
    loanController.agentGetLoansWithSnapshot
  );
  
@@ -127,6 +138,7 @@ router.get(
    "/agent/snapshots/:loanId",
    auth,
    role("agent"),
+   rateLimiter.default,
    loanController.agentGetLoanSnapshot
  );
  
@@ -142,12 +154,13 @@ router.get(
  * ⭐ GET CUSTOMER DEBTS (NEW - SAFE)
  * ======================================================
  */
-router.get(
+ router.get(
   "/customer/:customerId/debts",
   auth,
+  role("agent"),
+  rateLimiter.default,
   loanController.getCustomerDebts
 );
-
  /**
   * ======================================================
   * SHARED
