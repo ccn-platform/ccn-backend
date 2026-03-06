@@ -1,4 +1,4 @@
-    const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
