@@ -1,8 +1,9 @@
-const mongoose = require("mongoose");
-
+    const mongoose = require("mongoose");
+const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
 const Agent = require("../models/Agent");
+const User = require("../models/User");
 const auditLogsService = require("./auditLogsService");
 
 const Revenue = require("../models/Revenue");
@@ -73,19 +74,26 @@ class LoanService {
    * ======================================================
    */
   async createLoanRequest({ customer, agent, items, repaymentPeriod }) {
+    
+    const customerUser = await User.findById(customer);
+
+if (!customerUser) {
+  throw new Error("Customer not found.");
+}
+
     if (!agent) throw new Error("Agent ID inahitajika.");
     if (!repaymentPeriod || repaymentPeriod < 1)
       throw new Error("Weka muda sahihi wa kulipa mkopo.");
     if (!items || !Array.isArray(items) || items.length === 0)
       throw new Error("Ongeza bidhaa angalau moja.");
 
- const eligibility = await this.checkBorrowingEligibility(customer);
+ 
+
+const eligibility = await this.checkBorrowingEligibility(customer);
 
 if (!eligibility.allowed) {
 
   try {
-    const User = mongoose.model("User");
-    const customerUser = await User.findById(customer);
 
     if (customerUser?.expoPushToken) {
       await pushService.sendTemplate(
@@ -102,11 +110,19 @@ if (!eligibility.allowed) {
 
   throw new Error(eligibility.reason);
 }
-     
- const User = mongoose.model("User");
-const customerUser = await User.findById(customer);
+// 🔒 Prevent duplicate pending loan requests
+const existingPending = await Loan.exists({
+  customer,
+  status: "pending_agent_review"
+});
 
-const agentDoc = await Agent.findById(agent);
+if (existingPending) {
+  throw new Error("Una maombi ya mkopo ambayo bado hayajashughulikiwa.");
+}
+
+ const agentDoc = await Agent.findById(agent)
+.select("user businessCategory businessName agentId systemId");
+ 
 if (!agentDoc) throw new Error("Wakala hakupatikana.");
       
 
@@ -167,18 +183,14 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + repaymentPeriod);
 
+     const agentUser = agentDoc.user
+  ? await User.findById(agentDoc.user).select("fullName phone expoPushToken")
+  : null;
      
-    const BusinessCategory = mongoose.model("BusinessCategory");
-
-     
-    const agentUser = agentDoc.user
-      ? await User.findById(agentDoc.user)
-      : null;
-
-    const categoryDoc = categoryId
-      ? await BusinessCategory.findById(categoryId)
-      : null;
-
+const categoryDoc = categoryId
+  ? await BusinessCategory.findById(categoryId).select("name")
+  : null;
+    
     const loan = await Loan.create({
       customer,
       agent,
@@ -374,7 +386,7 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
 
     setImmediate(async () => {
       try {
-        const User = mongoose.model("User");
+ 
         const customerUser = await User.findById(loan.customer);
         if (customerUser?.expoPushToken) {
           await pushService.sendTemplate(
@@ -443,7 +455,9 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
    * ======================================================
    */
   async getCustomerDebtsForLoanReview(loanId, agentId) {
-    const loan = await Loan.findById(loanId);
+    
+const loan = await Loan.findById(loanId)
+.select("agent customer agentCategory status");
 
     if (!loan) throw new Error("Loan haipo.");
     if (String(loan.agent) !== String(agentId))
@@ -463,7 +477,8 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
    * ======================================================
    */
   async agentRejectLoan(agentId, loanId, reason = null) {
-    const loan = await Loan.findById(loanId);
+    const loan = await Loan.findById(loanId)
+    .select("agent customer status customerSnapshot");
 
     if (!loan) throw new Error("Loan haipo.");
     if (String(loan.agent) !== String(agentId))
@@ -496,8 +511,7 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
        source: "AGENT",
      });
 
-
-    const User = mongoose.model("User");
+ 
     const customerUser = await User.findById(loan.customer);
 
     if (customerUser?.expoPushToken) {
