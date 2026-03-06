@@ -1,4 +1,4 @@
-    const mongoose = require("mongoose");
+   const mongoose = require("mongoose");
 const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -75,7 +75,9 @@ class LoanService {
    */
   async createLoanRequest({ customer, agent, items, repaymentPeriod }) {
     
-    const customerUser = await User.findById(customer);
+   const customerUser = await User.findById(customer)
+    .select("systemId fullName phone expoPushToken")
+    .lean();
 
 if (!customerUser) {
   throw new Error("Customer not found.");
@@ -119,9 +121,9 @@ const existingPending = await Loan.exists({
 if (existingPending) {
   throw new Error("Una maombi ya mkopo ambayo bado hayajashughulikiwa.");
 }
-
  const agentDoc = await Agent.findById(agent)
-.select("user businessCategory businessName agentId systemId");
+.select("user businessCategory businessName agentId systemId")
+.lean();
  
 if (!agentDoc) throw new Error("Wakala hakupatikana.");
       
@@ -275,7 +277,8 @@ const categoryDoc = categoryId
 
   try {
  
-    const loan = await Loan.findOneAndUpdate(
+     const loan = await Loan.findOneAndUpdate(
+       
   {
     _id: loanId,
     status: "pending_agent_review"
@@ -577,3 +580,4 @@ module.exports = {
   markOverdueLoans
 };
   
+ 
