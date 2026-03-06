@@ -125,8 +125,8 @@ class LoanController {
       return res.status(500).json({ error: "Failed to fetch loans." });
     }
   }
-
-  /** =====================================================
+ 
+    /** =====================================================
    * 4️⃣ AGENT → GET PENDING LOANS
    * ===================================================== */
   async getPendingLoans(req, res) {
@@ -148,6 +148,7 @@ class LoanController {
       return res.status(500).json({ error: "Failed to fetch pending loans." });
     }
   }
+
 
   /** =====================================================
    * 6️⃣ AGENT → APPROVE LOAN
@@ -229,34 +230,7 @@ class LoanController {
       return res.status(400).json({ error: err.message });
     }
   }
-    /**
-   * =====================================================
-   * ⭐ AGENT → GET SINGLE LOAN SNAPSHOT
-   * =====================================================
-   */
-  async agentGetLoanSnapshot(req, res) {
-    try {
-      const userId = req.user.userId || req.user.id || req.user._id;
-      const { loanId } = req.params;
-
-      const agent = await Agent.findOne({ user: userId });
-      if (!agent) {
-        return res.status(403).json({ error: "Agent account not found." });
-      }
-
-      const loan =
-        await loanService.getAgentLoanSnapshot(agent._id, loanId);
-
-      if (!loan) {
-        return res.status(404).json({ error: "Loan not found." });
-      }
-
-      return res.json({ loan });
-    } catch (err) {
-      return res.status(500).json({ error: "Failed to fetch loan." });
-    }
-  } 
-
+    
      // ===============================
     // AGENT → GET CUSTOMER DEBTS
      // ===============================
@@ -305,40 +279,32 @@ class LoanController {
     }
   }
   
-  /**
-   * =====================================================
-   * ⭐ AGENT → GET MY LOANS WITH SNAPSHOT
-   * =====================================================
-   */
-   async getCustomerDebtsForAgent(req, res) {
+   /** =====================================================
+ * ⭐ AGENT → GET SINGLE LOAN SNAPSHOT
+ * ===================================================== */
+async agentGetLoanSnapshot(req, res) {
   try {
-    const { systemId } = req.params;
+    const userId = req.user.userId || req.user.id || req.user._id;
+    const { loanId } = req.params;
 
-    // 1️⃣ Tafuta user kwa systemId
-    const user = await User.findOne({ systemId });
-    if (!user) {
-      return res.status(404).json({ error: "Customer not found" });
-    }
-
-    // 2️⃣ Hakikisha requester ni agent
-    const agent = await Agent.findOne({ user: req.user.userId });
+    const agent = await Agent.findOne({ user: userId });
     if (!agent) {
-      return res.status(403).json({ error: "Agent not authorized" });
+      return res.status(403).json({ error: "Agent account not found." });
     }
 
-    // 3️⃣ Pata madeni ya customer kwa kutumia ObjectId
-    const loans = await Loan.find({
-      customer: user._id,
-      status: { $in: ["active", "overdue"] },
-    }).sort({ createdAt: -1 });
+    const loan = await loanService.getAgentLoanSnapshot(agent._id, loanId);
 
-    return res.json({ loans });
+    if (!loan) {
+      return res.status(404).json({ error: "Loan not found." });
+    }
+
+    return res.json({ loan });
+
   } catch (err) {
-    console.error("GET CUSTOMER DEBTS ERROR:", err);
-    return res.status(500).json({ error: "Failed to fetch customer debts" });
+    console.error("AGENT SNAPSHOT ERROR:", err);
+    return res.status(500).json({ error: "Failed to fetch loan." });
   }
 }
-
 
   /**
  * ======================================================
