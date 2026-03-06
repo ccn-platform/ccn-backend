@@ -6,6 +6,8 @@ const Agent = require("../models/Agent");
 const User = require("../models/User");
 const ControlNumber = require("../models/controlNumber"); // ✅ ADDED (SAFE)
  const PayoutAccount = require("../models/payoutAccount");
+const cache = require("../services/cacheService");
+const logger = require("../services/loggerService");
 
 class LoanController {
   /** =====================================================
@@ -24,10 +26,18 @@ class LoanController {
         },
         customerId
       );
+// 🔥 clear cache
+     await cache.del(`customer_loans_${customerId}_page_1`);
+
+    logger.info("Loan request created", {
+      customer: customerId
+    });
 
       return res.json(result);
     } catch (err) {
-      console.log("Loan Request Error:", err);
+         logger.error("Loan Request Error", {
+      error: err.message
+    });
       return res.status(400).json({
         success: false,
         message: err.message
@@ -40,69 +50,91 @@ class LoanController {
    * 2️⃣ CUSTOMER → GET MY LOANS (TOKEN BASED)
    * ===================================================== */
   async getMyLoans(req, res) {
-    try {
-      const customerId = req.user.userId || req.user.id || req.user._id;
+  try {
 
-       const loans = await Loan.find({ customer: customerId })
-         .populate({
-          path: "agent",
-          select: "businessName user",
-          populate: {
-            path: "user",
-            select: "phone fullName"
-         }
-       })
-        .sort({ createdAt: -1 })
-         .lean();
+    const customerId = req.user.userId || req.user.id || req.user._id;
 
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 
-      const loanIds = loans.map(l => l._id);
+    const cacheKey = `customer_loans_${customerId}_page_${page}`;
 
-      const controlNumbers = await ControlNumber.find({
-        loan: { $in: loanIds },
-        status: "active",
-      }).lean();
+    // 🔥 check cache first
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+     logger.info("Loans loaded from cache", {
+     customer: customerId,
+     page
+   });
+      return res.json({ loans: cached });
+    }
+  
 
-      const controlMap = {};
-      controlNumbers.forEach(cn => {
-        controlMap[String(cn.loan)] = cn.reference;
-      });
-    // ==============================
-    // ⭐ PATA PAYOUT ACCOUNT ZA AGENT
-    // ==============================
-     const agentIds = loans
-       .map(l => l.agent?._id)
-       .filter(Boolean);
+ const loans = await Loan.find({ customer: customerId })
+.select("agent items amount totalPayable status createdAt")
+  .populate("agent", "businessName user")
+.populate("agent.user", "phone fullName")
+
+  .sort({ createdAt: -1 })
+  .skip((page - 1) * limit)
+  .limit(limit)
+  .lean();
+    const loanIds = loans.map(l => l._id);
+
+    const controlNumbers = await ControlNumber.find({
+      loan: { $in: loanIds },
+      status: "active",
+    }).lean();
+
+    const controlMap = {};
+    controlNumbers.forEach(cn => {
+      controlMap[String(cn.loan)] = cn.reference;
+    });
+
+   const agentIds = [
+  ...new Set(
+    loans.map(l => l.agent?._id?.toString()).filter(Boolean)
+  )
+];
 
     const payoutAccounts = await PayoutAccount.find({
-       agent: { $in: agentIds },
-       isPrimary: true,
-       isActive: true,
-      }).lean();
+      agent: { $in: agentIds },
+      isPrimary: true,
+      isActive: true,
+    }).lean();
 
-      const payoutMap = {};
-       payoutAccounts.forEach(p => {
-       payoutMap[String(p.agent)] = p;
-     });
+    const payoutMap = {};
+    payoutAccounts.forEach(p => {
+      payoutMap[String(p.agent)] = p;
+    });
 
+    const enrichedLoans = loans.map(loan => ({
+      ...loan,
+      controlNumber: controlMap[String(loan._id)] || null,
+      agentPhone: loan.agent?.user?.phone || null,
+      payoutAccount: payoutMap[String(loan.agent?._id)] || null,
+    }));
 
-      const enrichedLoans = loans.map(loan => ({
-        ...loan,
-        controlNumber: controlMap[String(loan._id)] || null,
-         // 📱 agent phone
-        agentPhone: loan.agent?.user?.phone || null,
+    // 🔥 save to cache (30 seconds)
+    await cache.set(cacheKey, enrichedLoans, 30);
 
-        // 💰 payout account
-         payoutAccount: payoutMap[String(loan.agent?._id)] || null,
+    logger.info("Loans loaded from database", {
+      customer: customerId,
+      page,
+      count: enrichedLoans.length
+    });
+    return res.json({ loans: enrichedLoans });
 
-      }));
+  } catch (err) {
 
-      return res.json({ loans: enrichedLoans });
-    } catch (err) {
-      console.log("GET MY LOANS ERROR:", err);
-      return res.status(500).json({ error: "Failed to fetch loans." });
-    }
+    logger.error("GET MY LOANS ERROR", {
+  error: err.message,
+  
+});
+
+    return res.status(500).json({ error: "Failed to fetch loans." });
   }
+}
 
   /** =====================================================
    * 3️⃣ CUSTOMER → GET LOANS BY CUSTOMER ID
@@ -169,10 +201,14 @@ class LoanController {
         loanId,
         items
       );
-
+      await cache.del(`customer_loans_${result.loan.customer}_page_1`);
+     
       return res.json(result);
     } catch (err) {
-      console.log("Agent Approve Error:", err);
+      logger.error("Agent Approve Error", {
+        error: err.message,
+        loanId: req.params.loanId,
+     });
       return res.status(400).json({ error: err.message });
     }
   }
@@ -199,7 +235,11 @@ class LoanController {
 
       return res.json(result);
     } catch (err) {
-      console.log("Agent Reject Error:", err);
+       
+      logger.error("Agent Reject Error", {
+        error: err.message,
+        loanId: req.params.loanId,
+     });
       return res.status(400).json({ error: err.message });
     }
   }
@@ -226,7 +266,11 @@ class LoanController {
 
       return res.json(result);
     } catch (err) {
-      console.log("Loan Review Debts Error:", err);
+       
+      logger.error("Loan Review Debts Error", {
+         error: err.message,
+         loanId: req.params.loanId,
+      });
       return res.status(400).json({ error: err.message });
     }
   }
@@ -274,7 +318,11 @@ class LoanController {
 
       return res.json({ loans });
     } catch (err) {
-      console.error("GET CUSTOMER DEBTS ERROR:", err);
+       
+      logger.error("GET CUSTOMER DEBTS ERROR", {
+        error: err.message,
+         systemId: req.params.systemId
+     });
       return res.status(500).json({ error: "Failed to fetch customer debts" });
     }
   }
@@ -301,7 +349,10 @@ async agentGetLoanSnapshot(req, res) {
     return res.json({ loan });
 
   } catch (err) {
-    console.error("AGENT SNAPSHOT ERROR:", err);
+     logger.error("AGENT SNAPSHOT ERROR", {
+       error: err.message,
+     });
+
     return res.status(500).json({ error: "Failed to fetch loan." });
   }
 }
@@ -322,7 +373,10 @@ async getCustomerDebts(req, res) {
 
     return res.json({ loans });
   } catch (err) {
-    console.error("GET CUSTOMER DEBTS ERROR:", err);
+     logger.error("GET CUSTOMER DEBTS ERROR", {
+  error: err.message,
+    customerId: req.params.customerId
+});
     return res.status(500).json({ error: "Failed to fetch customer debts" });
   }
 }
