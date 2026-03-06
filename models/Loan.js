@@ -1,4 +1,4 @@
-   const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const itemSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -173,5 +173,6 @@ loanSchema.index({ customer: 1, createdAt: -1 });
 loanSchema.index({ agent: 1, createdAt: -1 });
 loanSchema.index({ status: 1, createdAt: -1 });
 loanSchema.index({ agent: 1, status: 1, createdAt: -1 });
+LoanSchema.index({ customer: 1, status: 1 });
 
 module.exports = mongoose.model("Loan", loanSchema);
