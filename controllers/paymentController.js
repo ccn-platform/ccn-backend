@@ -1,4 +1,4 @@
-  const paymentService = require("../services/paymentService");
+   const paymentService = require("../services/paymentService");
  const Agent = require("../models/Agent");
  const Loan = require("../models/Loan");
  const Revenue = require("../models/Revenue");
@@ -151,25 +151,15 @@ if (!["active", "overdue"].includes(loan.status)) {
     message: "Ada inaweza kulipwa tu kwa mkopo ulio ACTIVE au OVERDUE",
   });
 }
+const result = await paymentService.payLoanFee(agentId, loanId, amountPaid);
 
-  await paymentService.payLoanFee(agentId, loanId, amountPaid);
+console.log("✅ Loan fee paid successfully");
 
-
-    // ===== 6️⃣ HIFADHI REVENUE =====
-    await Revenue.create({
-      source: "LOAN_FEE",
-      totalFee: loan.totalFee,
-      loan: loan._id,
-      agent: agentId,
-    });
-
-    console.log("✅ Loan fee paid successfully");
-
-    return res.status(200).json({
-      success: true,
-      message: "Ada imelipwa kikamilifu",
-    });
-
+return res.status(200).json({
+  success: true,
+  message: result.message,
+});
+  
   } catch (error) {
     console.error("❌ PAY FEE ERROR:", error);
     return res.status(400).json({
@@ -309,4 +299,3 @@ async agentAdjustLoan(req, res) {
 }
 
 module.exports = new PaymentController();    
- 
