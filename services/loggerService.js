@@ -1,43 +1,38 @@
-const fs = require("fs");
-const path = require("path");
+  const pino = require("pino");
 
-class LoggerService {
-  constructor() {
-    this.logDir = path.join(__dirname, "../logs");
+const logger = pino({
+  level: process.env.LOG_LEVEL || "info",
 
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir);
+  base: {
+    service: "CCN-BACKEND"
+  },
+
+  timestamp: pino.stdTimeFunctions.isoTime,
+
+  transport: {
+    target: "pino-pretty",
+    options: {
+      colorize: true,
+      translateTime: "SYS:standard",
+      ignore: "pid,hostname"
     }
   }
+});
 
-  write(level, message, meta = {}) {
-    const log = {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      meta,
-    };
+module.exports = {
+  info: (message, data = {}) => {
+    logger.info(data, message);
+  },
 
-    const file = path.join(this.logDir, `${level}.log`);
-    fs.appendFileSync(file, JSON.stringify(log) + "\n");
+  error: (message, data = {}) => {
+    logger.error(data, message);
+  },
 
-    // Dev visibility
-    if (level === "error") {
-      console.error(log);
-    }
+  warn: (message, data = {}) => {
+    logger.warn(data, message);
+  },
+
+  debug: (message, data = {}) => {
+    logger.debug(data, message);
   }
-
-  info(message, meta) {
-    this.write("info", message, meta);
-  }
-
-  warn(message, meta) {
-    this.write("warn", message, meta);
-  }
-
-  error(message, meta) {
-    this.write("error", message, meta);
-  }
-}
-
-module.exports = new LoggerService();
+};
