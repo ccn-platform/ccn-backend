@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const ControlNumberSchema = new mongoose.Schema(
   {
@@ -91,7 +91,11 @@ ControlNumberSchema.index({ customer: 1, status: 1 });
 ControlNumberSchema.index({ loan: 1, status: 1 });
 ControlNumberSchema.index({ status: 1, expiryTime: 1 });
 ControlNumberSchema.index({ source: 1, createdAt: -1 });
-
+// ⭐ muhimu sana kwa scalability
+ControlNumberSchema.index(
+  { loan: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "active" } }
+);
 module.exports =
   mongoose.models.ControlNumber ||
   mongoose.model("ControlNumber", ControlNumberSchema);
