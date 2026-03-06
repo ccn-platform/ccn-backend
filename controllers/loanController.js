@@ -1,6 +1,5 @@
   
- 
- const { loanService } = require("../services/loanService");
+const { loanService } = require("../services/loanService");
 const Loan = require("../models/Loan");
 const Agent = require("../models/Agent");
 const User = require("../models/User");
@@ -28,6 +27,8 @@ class LoanController {
       );
 // 🔥 clear cache
      await cache.del(`customer_loans_${customerId}_page_1`);
+     await cache.del(`customer_loans_${customerId}_page_2`);
+     await cache.del(`customer_loans_${customerId}_page_3`);
 
     logger.info("Loan request created", {
       customer: customerId
@@ -362,8 +363,14 @@ async agentGetLoanSnapshot(req, res) {
  * GET CUSTOMER DEBTS (SAFE - READ ONLY)
  * ======================================================
  */
-async getCustomerDebts(req, res) {
+ async getCustomerDebts(req, res) {
   try {
+
+    const agent = await Agent.findOne({ user: req.user.userId });
+    if (!agent) {
+      return res.status(403).json({ error: "Agent not authorized" });
+    }
+
     const { customerId } = req.params;
 
     const loans = await Loan.find({
@@ -372,15 +379,17 @@ async getCustomerDebts(req, res) {
     }).sort({ createdAt: -1 });
 
     return res.json({ loans });
+
   } catch (err) {
-     logger.error("GET CUSTOMER DEBTS ERROR", {
-  error: err.message,
-    customerId: req.params.customerId
-});
+
+    logger.error("GET CUSTOMER DEBTS ERROR", {
+      error: err.message,
+      customerId: req.params.customerId
+    });
+
     return res.status(500).json({ error: "Failed to fetch customer debts" });
   }
 }
-
   /**
    * =====================================================
    * ⭐ ADMIN → GET SINGLE LOAN SNAPSHOT
