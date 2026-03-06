@@ -1,4 +1,4 @@
- 
+  
  
 
    const express = require("express");
@@ -21,12 +21,6 @@
    loanController.requestLoanByPhone
  );
  
- router.post(
-   "/request",
-   auth,
-   role("customer"),
-   loanController.requestLoan
- );
  
  router.get(
    "/my",
