@@ -1,17 +1,18 @@
-  
- const express = require("express");
+  const express = require("express");
 const router = express.Router();
 
 const paymentController = require("../controllers/paymentController");
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
 
-// Log every payment request
+// 🔎 Log every payment request
 const requestLogger = require("../middleware/requestLogger");
 router.use(requestLogger);
 
 /**
- * CUSTOMER PAYMENT
+ * ======================================================
+ * CUSTOMER / AGENT PAYMENT (INSTALLMENT PAYMENT)
+ * ======================================================
  */
 router.post(
   "/pay",
@@ -20,7 +21,25 @@ router.post(
 );
 
 /**
- * PAYMENT CALLBACK (MOBILE MONEY)
+ * ======================================================
+ * AGENT PAY LOAN FEE (CLEAR LOAN)
+ * ======================================================
+ */
+router.post(
+  "/loans/:loanId/pay-fee",
+  auth,
+  role("agent"),
+  (req, res) => {
+    req.body.loanId = req.params.loanId;
+    return paymentController.payLoanFee(req, res);
+  }
+);
+
+ 
+/**
+ * ======================================================
+ * PAYMENT CALLBACK (MOBILE MONEY / GATEWAY)
+ * ======================================================
  */
 router.post(
   "/callback",
@@ -28,27 +47,9 @@ router.post(
 );
 
 /**
- * PAY LOAN FEE (AGENT)
- */
-router.post(
-  "/pay-fee",
-  auth,
-  paymentController.payLoanFee
-);
- 
-router.post(
-  "/loans/:loanId/adjust",
-  auth,               // 👈 TUMIA ILIYOPO
-  role("agent"),      // 👈 OPTIONAL BUT RECOMMENDED
-  (req, res) => {
-    req.body.loanId = req.params.loanId;
-    return paymentController.agentAdjustLoan(req, res);
-  }
-);
-
- 
-/**
+ * ======================================================
  * ADMIN / TEST PAYMENT
+ * ======================================================
  */
 router.post(
   "/test",
