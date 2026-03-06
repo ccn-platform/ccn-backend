@@ -1,4 +1,4 @@
- const Redis = require("ioredis");
+const Redis = require("ioredis");
 
 let redis = null;
 
