@@ -73,30 +73,15 @@ class LoanService {
    * ======================================================
    */
   async createLoanRequest({ customer, agent, items, repaymentPeriod }) {
-      const User = mongoose.model("User");
     if (!agent) throw new Error("Agent ID inahitajika.");
     if (!repaymentPeriod || repaymentPeriod < 1)
       throw new Error("Weka muda sahihi wa kulipa mkopo.");
     if (!items || !Array.isArray(items) || items.length === 0)
       throw new Error("Ongeza bidhaa angalau moja.");
- 
- const eligibility = await this.checkBorrowingEligibility(customer);
 
-if (!eligibility.allowed) {
+    const eligibility = await this.checkBorrowingEligibility(customer);
+    if (!eligibility.allowed) throw new Error(eligibility.reason);
 
-  
-  const customerUser = await User.findById(customer);
-
-  if (customerUser?.expoPushToken) {
-    await pushService.sendTemplate(
-      customerUser.expoPushToken,
-      "LOAN_BLOCKED",
-      { reason: eligibility.reason }
-    );
-  }
-
-  throw new Error(eligibility.reason);
-}
       
     const agentDoc = await Agent.findById(agent);
     if (!agentDoc) throw new Error("Wakala hakupatikana.");
@@ -112,47 +97,35 @@ if (!eligibility.allowed) {
     const hasProblem = debtResult.debts.some(
       (d) => d.status === "overdue" || d.status === "defaulted"
     );
- if (hasProblem) {
 
-  // 🔔 PUSH → AGENT
-  if (agentDoc.user) {
-    const agentUser = await User.findById(agentDoc.user);
+    if (hasProblem) {
+      // 🔔 PUSH → AGENT (LOAN BLOCKED)
+      if (agentDoc.user) {
+        const User = mongoose.model("User");
+        const agentUser = await User.findById(agentDoc.user);
 
-    if (agentUser?.expoPushToken) {
-      await pushService.sendTemplate(
-        agentUser.expoPushToken,
-        "LOAN_REJECTED",
-        { name: "Mteja" }
-      );
-    }
-  }
-
-  // 🔔 PUSH → CUSTOMER
-  const customerUser = await User.findById(customer);
-
-  if (customerUser?.expoPushToken) {
-    await pushService.sendTemplate(
-      customerUser.expoPushToken,
-      "LOAN_BLOCKED",
-      {
-        reason: "Una deni overdue/defaulted. Lipa kwanza ili kuendelea."
+        if (agentUser?.expoPushToken) {
+          await pushService.sendTemplate(
+            agentUser.expoPushToken,
+            "LOAN_REJECTED",
+            { name: "Mteja" }
+          );
+        }
       }
-    );
-  }
 
-  return {
-    loanCreated: false,
-    requiresAgentReview: true,
-    message: "Mteja ana deni lililo overdue/defaulted.",
-    debts: debtResult.debts,
-    summary: debtResult.summary,
-  };
-}
+      return {
+        loanCreated: false,
+        requiresAgentReview: true,
+        message: "Mteja ana deni lililo overdue/defaulted.",
+        debts: debtResult.debts,
+        summary: debtResult.summary,
+      };
+    }
 
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + repaymentPeriod);
 
-    
+    const User = mongoose.model("User");
     const BusinessCategory = mongoose.model("BusinessCategory");
 
     const customerUser = await User.findById(customer);
@@ -247,12 +220,20 @@ if (!eligibility.allowed) {
   session.startTransaction();
 
   try {
-
-    const loan = await Loan.findOne(
-      { _id: loanId, status: "pending_agent_review" },
-      null,
-      { session }
-    );
+ 
+    const loan = await Loan.findOneAndUpdate(
+  {
+    _id: loanId,
+    status: "pending_agent_review"
+  },
+  {
+    $set: { status: "processing" }
+  },
+  {
+    new: true,
+    session
+  }
+);
 
     if (!loan) {
       throw new Error("Loan haijapatikana au tayari imeidhinishwa");
@@ -498,10 +479,10 @@ async function markOverdueLoans() {
   while (true) {
     // Chukua batch ndogo tu
     const loans = await Loan.find({
-      status: "active",
-      dueDate: { $lt: now },
-      isOverdue: { $ne: true },
-    })
+       status: "active",
+       isOverdue: false,
+       dueDate: { $lt: now }
+     })
       .select("_id agent customer") // punguza payload
       .limit(BATCH_SIZE)
       .lean();
@@ -535,6 +516,8 @@ async function markOverdueLoans() {
     await auditLogsService.bulkInsert(logs);
   }
 }
-
- 
-module.exports = new LoanService();
+module.exports = {
+  loanService: new LoanService(),
+  markOverdueLoans
+};
+  
