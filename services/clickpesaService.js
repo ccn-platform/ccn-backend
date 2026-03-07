@@ -30,12 +30,12 @@ class ClickPesaService {
 
    console.log("ClickPesa URL:", url);
 
-  const amountStr = amount.toString();
+ const amountStr = amount.toString();
 
-// token bila neno Bearer
-const tokenValue = token.replace("Bearer ", "");
+// token bila Bearer
+const tokenValue = token.split(" ")[1];
 
-// string ya checksum
+// checksum string
 const payloadString =
  `${amountStr}TZS${reference}${phone}${tokenValue}`;
 
@@ -44,8 +44,8 @@ const checksum = crypto
  .update(payloadString)
  .digest("hex");
 
-   console.log("Checksum string:", payloadString);
-   console.log("Checksum hash:", checksum);
+console.log("Checksum string:", payloadString);
+console.log("Checksum hash:", checksum);
 
    const response = await axios.post(
     url,
