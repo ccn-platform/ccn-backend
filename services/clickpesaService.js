@@ -10,7 +10,6 @@ class ClickPesaService {
    throw new Error("Invalid payment amount");
   }
 
-  // normalize Tanzania phone
   phone = phone.replace(/\D/g, "");
 
   if (phone.startsWith("0")) {
@@ -26,22 +25,21 @@ class ClickPesaService {
    const token = await clickpesaAuth.getToken();
 
    const url =
-    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
+   `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
-   console.log("ClickPesa URL:", url);
+   const amountStr = amount.toString();
+   const secret = process.env.CLICKPESA_API_SECRET.trim();
 
- const amountStr = amount.toString();
- 
-const payloadString =
- `${amountStr}${reference}TZS${phone}${process.env.CLICKPESA_API_SECRET}`;
-   
-const checksum = crypto
- .createHash("sha256")
- .update(payloadString)
- .digest("hex");
+   const payloadString =
+   `${amountStr}${reference}TZS${phone}${secret}`;
 
-console.log("Checksum string:", payloadString);
-console.log("Checksum hash:", checksum);
+   const checksum = crypto
+   .createHash("sha256")
+   .update(payloadString, "utf8")
+   .digest("hex");
+
+   console.log("Checksum string:", payloadString);
+   console.log("Checksum hash:", checksum);
 
    const response = await axios.post(
     url,
@@ -61,12 +59,6 @@ console.log("Checksum hash:", checksum);
     }
    );
 
-   console.log("ClickPesa response:", response.data);
-
-   if (!response.data) {
-    throw new Error("Empty response from ClickPesa");
-   }
-
    return response.data;
 
   } catch (error) {
@@ -80,7 +72,6 @@ console.log("Checksum hash:", checksum);
 
    throw new Error("Mobile push request failed");
   }
-
  }
 
 }
