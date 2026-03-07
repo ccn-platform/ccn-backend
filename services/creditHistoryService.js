@@ -1,8 +1,8 @@
- // services/creditHistoryService.js
+  // services/creditHistoryService.js
 
 const CreditHistory = require("../models/creditHistory");
 const Loan = require("../models/Loan");
-const AuditLog = require("../models/AuditLog");
+ 
 const globalDebtService = require("./globalDebtService");
 const auditLogsService = require("./auditLogsService");
 
@@ -44,7 +44,7 @@ class CreditHistoryService {
         ? { defaults: 1 }
         : {},
   },
-  { upsert: true } // ⭐ MUHIMU SANA
+  { upsert: true, setDefaultsOnInsert: true }
 );
 
  await auditLogsService.log({
@@ -98,8 +98,8 @@ class CreditHistoryService {
    * =========================================================
    */
   async registerRepayment({ user, loan, amount, paymentType }) {
-    const loanDoc = await Loan.findById(loan);
-
+     const loanDoc = await Loan.findById(loan).lean();
+     if (!loanDoc) return;
     return this.recordEvent({
       user,
       loan,
@@ -117,8 +117,8 @@ class CreditHistoryService {
    * =========================================================
    */
   async registerOverdue(loan, lateDays) {
-    const loanDoc = await Loan.findById(loan);
-
+     const loanDoc = await Loan.findById(loan).lean();
+     if (!loanDoc) return;
     return this.recordEvent({
       user: loanDoc.customer,
       loan,
@@ -136,8 +136,8 @@ class CreditHistoryService {
    * =========================================================
    */
   async registerDefault(loan) {
-    const loanDoc = await Loan.findById(loan);
-
+    const loanDoc = await Loan.findById(loan).lean();
+    if (!loanDoc) return;
     return this.recordEvent({
       user: loanDoc.customer,
       loan,
@@ -169,30 +169,42 @@ class CreditHistoryService {
    * 7️⃣ CUSTOMER HISTORY
    * =========================================================
    */
-  async getCustomerHistory(customerId) {
-    return CreditHistory.find({ user: customerId })
-      .populate("loan")
-      .sort({ createdAt: -1 });
-  }
-
+ async getCustomerHistory(customerId) {
+  return CreditHistory.findOne({ customer: customerId })
+    .populate("lastLoan")
+    .lean();
+}
   /**
    * =========================================================
    * 8️⃣ CUSTOMER SUMMARY (AI / Analytics)
    * =========================================================
    */
   async getSummaryForCustomer(customerId) {
-    const history = await CreditHistory.find({ user: customerId });
-    const debt = await globalDebtService.getUserDebtSummary(customerId);
 
+   const history = await CreditHistory.findOne({ customer: customerId }).lean();
+  const debt = await globalDebtService.getUserDebtSummary(customerId);
+
+  if (!history) {
     return {
-      totalLoans: history.filter(e => e.eventType === "LOAN_CREATED").length,
-      totalRepayments: history.filter(e => e.eventType === "PAYMENT_RECEIVED").length,
-      defaults: history.filter(e => e.eventType === "DEFAULTED").length,
-      overdue: history.filter(e => e.eventType === "OVERDUE").length,
+      totalLoans: 0,
+      latePayments: 0,
+      defaults: 0,
+      riskBand: "LOW",
       currentDebt: debt.totalDebt,
     };
   }
-  /**
+
+  return {
+    totalLoans: history.totalLoans,
+    latePayments: history.latePayments,
+    defaults: history.defaults,
+    riskBand: history.riskBand,
+    currentDebt: debt.totalDebt,
+  };
+
+}
+
+    /**
    * =========================================================
    * 1️⃣4️⃣ HOOK — LOAN ADJUSTED (AGENT / ADMIN)
    * =========================================================
@@ -201,7 +213,7 @@ class CreditHistoryService {
     { loanId, agentId, amount, breakdown, reason },
     session = null
   ) {
-    const loan = await Loan.findById(loanId);
+    const loan = await Loan.findById(loanId).lean();
     if (!loan) return;
 
     return this.recordEvent({
@@ -227,10 +239,10 @@ class CreditHistoryService {
    * 9️⃣ LOAN HISTORY
    * =========================================================
    */
-  async getLoanHistory(loanId) {
-    return CreditHistory.find({ loan: loanId }).sort({ createdAt: -1 });
-  }
-
+  
+ async getLoanHistory(loanId) {
+  return CreditHistory.findOne({ lastLoan: loanId }).lean();
+}
   // =========================================================
   // 🔽 🔽 🔽 SAFE HOOKS
   // =========================================================
@@ -246,16 +258,18 @@ class CreditHistoryService {
    * 1️⃣1️⃣ HOOK — Payment applied
    */
   async onPaymentApplied({ loanId, amount, paymentType }) {
-    const loan = await Loan.findById(loanId);
-    if (!loan) return;
 
-    return this.registerRepayment({
-      user: loan.customer,
-      loan: loanId,
-      amount,
-      paymentType,
-    });
-  }
+  const loanDoc = await Loan.findById(loanId).lean();
+  if (!loanDoc) return;
+
+  return this.registerRepayment({
+    user: loanDoc.customer,
+    loan: loanId,
+    amount,
+    paymentType,
+  });
+
+}
 
   /**
    * 1️⃣2️⃣ HOOK — Overdue automation
@@ -271,5 +285,5 @@ class CreditHistoryService {
     return this.registerDefault(loanId);
   }
 }
-
+  
 module.exports = new CreditHistoryService();
