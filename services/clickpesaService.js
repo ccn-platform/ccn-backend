@@ -29,16 +29,18 @@ class ClickPesaService {
     `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
    console.log("ClickPesa URL:", url);
-const amountStr = amount.toString();
- 
-const payloadString =
- `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
-   
-const checksum = crypto
- .createHash("sha256")
- .update(payloadString)
- .digest("hex");
-    
+
+   const amountStr = amount.toString();
+
+   // generate checksum
+   const payloadString =
+    `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
+
+   const checksum = crypto
+    .createHash("sha256")
+    .update(payloadString)
+    .digest("hex");
+
    console.log("Checksum string:", payloadString);
    console.log("Checksum hash:", checksum);
 
@@ -53,10 +55,9 @@ const checksum = crypto
     },
     {
      headers: {
-       Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-        },
-     
+      Authorization: token,
+      "Content-Type": "application/json"
+     },
      timeout: 10000
     }
    );
@@ -65,11 +66,6 @@ const checksum = crypto
 
    if (!response.data) {
     throw new Error("Empty response from ClickPesa");
-   }
-
-   if (response.data.status === "FAILED") {
-    console.error("ClickPesa rejected request:", response.data);
-    throw new Error("ClickPesa rejected payment request");
    }
 
    return response.data;
