@@ -20,9 +20,9 @@ function loanReference() {
   return "LN-" + randomCode(10);
 }
 
-function transactionId() {
+ function transactionId() {
   const time = Date.now().toString(36).toUpperCase();
-  return `TX-${time}-${randomCode(8)}`;
+  return "TX" + time + randomCode(6);
 }
 
 module.exports = {
