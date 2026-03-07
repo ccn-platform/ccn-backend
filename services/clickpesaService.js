@@ -27,7 +27,7 @@ class ClickPesaService {
    const url =
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
-   const amountStr = amount.toString();
+   const amountStr = parseInt(amount, 10).toString();
    const secret = process.env.CLICKPESA_API_SECRET.trim();
 
    const payloadString =
@@ -58,6 +58,8 @@ class ClickPesaService {
      timeout: 10000
     }
    );
+
+   console.log("ClickPesa response:", response.data);
 
    return response.data;
 
