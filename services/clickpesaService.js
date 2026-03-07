@@ -32,23 +32,22 @@ class ClickPesaService {
 
    console.log("ClickPesa URL:", url);
 
-   const response = await axios.post(
-    url,
-    {
-     amount: amount.toString(),
-     currency: "TZS",
-     orderReference: reference,
-     phoneNumber: phone
-    },
-    {
-     headers: {
-     Authorization: token
-      "Content-Type": "application/json"
-     },
-     timeout: 10000
-    }
-   );
-
+const response = await axios.post(
+ url,
+ {
+  amount: amount.toString(),
+  currency: "TZS",
+  orderReference: reference,
+  phoneNumber: phone
+ },
+ {
+  headers: {
+   Authorization: token,
+   "Content-Type": "application/json"
+  },
+  timeout: 10000
+ }
+);
    console.log("ClickPesa response:", response.data);
 
    if (!response.data) {
