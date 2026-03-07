@@ -1,4 +1,5 @@
  const axios = require("axios");
+const crypto = require("crypto");
 const clickpesaAuth = require("./clickpesaAuthService");
 
 class ClickPesaService {
@@ -31,14 +32,22 @@ class ClickPesaService {
     `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
    console.log("ClickPesa URL:", url);
+    
+// generate checksum
+const payloadString = `${amount}TZS${reference}${phone}`;
 
+const checksum = crypto
+ .createHash("sha256")
+ .update(payloadString)
+ .digest("hex");
 const response = await axios.post(
  url,
  {
   amount: amount.toString(),
   currency: "TZS",
   orderReference: reference,
-  phoneNumber: phone
+  phoneNumber: phone,
+  checksum: checksum
  },
  {
   headers: {
