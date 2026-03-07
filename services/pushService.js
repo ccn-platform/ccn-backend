@@ -1,25 +1,26 @@
-  // services/pushService.js
-
-const axios = require("axios");
-const User = require("../models/User"); // 🆕 SAFE ADD
+  const axios = require("axios");
+const User = require("../models/User");
 
 class PushService {
+
   constructor() {
     this.expoUrl = "https://exp.host/--/api/v2/push/send";
   }
 
   /**
    * ======================================================
-   * 1️⃣ Send raw Expo push notification
+   * 1️⃣ SEND SINGLE PUSH
    * ======================================================
    */
   async sendRaw(token, title, body, data = {}) {
+
     if (!token || !token.startsWith("ExponentPushToken")) {
-      console.error("❌ Invalid or missing Expo push token");
-      return { success: false, message: "Invalid push token" };
+      console.error("❌ Invalid Expo push token");
+      return { success: false };
     }
 
     try {
+
       const response = await axios.post(this.expoUrl, {
         to: token,
         title,
@@ -29,21 +30,84 @@ class PushService {
         priority: "high",
       });
 
-      console.log("📩 Push sent:", response.data);
       return { success: true, response: response.data };
+
     } catch (error) {
-      console.error("❌ Push Notification Error:", error.message);
-      return { success: false, error: error.message };
+
+      console.error("❌ Push error:", error.message);
+      return { success: false };
+
     }
+
   }
+
 
   /**
    * ======================================================
-   * 2️⃣ Send template notifications
+   * 2️⃣ BULK PUSH (SCALABLE VERSION)
+   * ======================================================
+   */
+  async sendBulk(tokens, title, body, data = {}) {
+
+    if (!tokens || tokens.length === 0) {
+      return [];
+    }
+
+    const chunkSize = 100;
+    const chunks = [];
+
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+      chunks.push(tokens.slice(i, i + chunkSize));
+    }
+
+    try {
+
+      const requests = chunks.map(chunk => {
+
+  const messages = chunk.map(token => ({
+    to: token,
+    title,
+    body,
+    data,
+    sound: "default",
+    priority: "high",
+  }));
+
+  return axios.post(
+    this.expoUrl,
+    messages,
+    {
+      timeout: 5000,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+});
+      const responses = await Promise.all(requests);
+
+      return responses.map(r => r.data);
+
+    } catch (err) {
+
+      console.error("❌ Bulk push error:", err.message);
+      return [];
+
+    }
+
+  }
+
+
+  /**
+   * ======================================================
+   * 3️⃣ TEMPLATE NOTIFICATIONS
    * ======================================================
    */
   async sendTemplate(token, templateName, data = {}) {
+
     const templates = {
+
       WELCOME: {
         title: "Karibu CCN",
         body: `Habari ${data.name}, akaunti yako imeundwa kikamilifu.`,
@@ -76,8 +140,9 @@ class PushService {
 
       DEVICE_UNLOCKED: {
         title: "Simu Imefunguliwa 🔓",
-        body: `Simu yako imefunguliwa baada ya kulipa deni. Asante!`,
-      },
+        body: `Simu yako imefunguliwa baada ya kulipa deni.`,
+      }
+
     };
 
     const template = templates[templateName];
@@ -87,56 +152,45 @@ class PushService {
     }
 
     return this.sendRaw(token, template.title, template.body, data);
+
   }
+
 
   /**
    * ======================================================
-   * 3️⃣ Bulk notifications
+   * 4️⃣ SEND PUSH TO USER
    * ======================================================
    */
-  async sendBulk(tokens, title, body) {
-    const results = [];
+  async sendToUser(userId, payload) {
 
-    for (const token of tokens) {
-      const res = await this.sendRaw(token, title, body);
-      results.push(res);
+    const user = await User.findById(userId)
+      .select("expoPushToken pushToken phone");
+
+    if (!user) {
+      console.error("❌ User not found for push");
+      return;
     }
 
-    return results;
+    const token = user.expoPushToken || user.pushToken;
+
+    if (!token) {
+      console.error("❌ User has no push token");
+      return;
+    }
+
+    const title = payload.title || "Notification";
+    const body = payload.body || "";
+    const type = payload.type || null;
+
+    const data = {
+      ...payload.data,
+      type,
+      phone: user.phone,
+    };
+
+    return this.sendRaw(token, title, body, data);
+
   }
-
-  /**
-   * ======================================================
-   * 🆕 4️⃣ SEND TO USER (SAFE ADD — DO NOT BREAK EXISTING)
-   * ======================================================
-   * - Used by authService (forgot PIN, security alerts)
-   * - Fetches user's expoPushToken internally
-   */
-   async sendToUser(userId, payload) {
-  const user = await User.findById(userId).select("expoPushToken pushToken phone");
-  if (!user) {
-    console.error("❌ User not found for push");
-    return;
-  }
-
-  const token = user.expoPushToken || user.pushToken;
-  if (!token) {
-    console.error("❌ User has no push token");
-    return;
-  }
-
-  const title = payload.title || "Notification";
-  const body = payload.body || "";
-  const type = payload.type || null;
-
-  const data = {
-    ...payload.data,
-    type,
-    phone: user.phone, // ⭐ MUHIMU SANA
-  };
-
-  return this.sendRaw(token, title, body, data);
-}
 
 }
 
