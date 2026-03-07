@@ -28,7 +28,7 @@ class ClickPesaService {
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
    const amountStr = String(amount);
-const currency = "TZS";
+ 
 const secret = process.env.CLICKPESA_API_SECRET.trim();
 
 const payloadString =
