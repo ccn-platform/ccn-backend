@@ -30,10 +30,10 @@ class ClickPesaService {
 
    console.log("ClickPesa URL:", url);
 const amountStr = amount.toString();
-
+ 
 const payloadString =
- `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_CLIENT_ID}`;
-
+ `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
+   
 const checksum = crypto
  .createHash("sha256")
  .update(payloadString)
@@ -53,7 +53,7 @@ const checksum = crypto
     },
     {
      headers: {
-      Authorization: token,
+     Authorization: `Bearer ${token}`
       "Content-Type": "application/json"
      },
      timeout: 10000
