@@ -27,19 +27,19 @@ class ClickPesaService {
    const url =
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
-  const amountStr = String(amount);
+ const amountStr = String(amount);
 const secret = process.env.CLICKPESA_API_SECRET.trim();
 
 const payloadString =
-`${amountStr}${reference}TZS${phone}${secret}`;
+`${amountStr}${reference}${phone}${secret}`;
 
 const checksum = crypto
 .createHash("sha256")
 .update(payloadString, "utf8")
 .digest("hex");
 
-   console.log("Checksum string:", payloadString);
-   console.log("Checksum hash:", checksum);
+console.log("Checksum string:", payloadString);
+console.log("Checksum hash:", checksum);
 
    const response = await axios.post(
     url,
