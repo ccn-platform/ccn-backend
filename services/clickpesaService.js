@@ -34,8 +34,10 @@ class ClickPesaService {
    console.log("ClickPesa URL:", url);
     
 // generate checksum
-const payloadString = `${amount}TZS${reference}${phone}`;
-
+ 
+const payloadString =
+ `${amount}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
+   
 const checksum = crypto
  .createHash("sha256")
  .update(payloadString)
