@@ -42,7 +42,7 @@ class ClickPesaService {
     },
     {
      headers: {
-      Authorization: `Bearer ${token}`,
+     Authorization: token
       "Content-Type": "application/json"
      },
      timeout: 10000
