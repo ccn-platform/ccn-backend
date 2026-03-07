@@ -1,4 +1,5 @@
  const axios = require("axios");
+const clickpesaAuth = require("./clickpesaAuthService");
 
 class ClickPesaService {
 
@@ -8,7 +9,6 @@ class ClickPesaService {
    throw new Error("Invalid payment amount");
   }
 
-  // normalize Tanzania phone format
   phone = phone.replace(/\D/g, "");
 
   if (phone.startsWith("0")) {
@@ -25,6 +25,8 @@ class ClickPesaService {
 
   try {
 
+   const token = await clickpesaAuth.getToken();
+
    const url =
     `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
@@ -40,7 +42,7 @@ class ClickPesaService {
     },
     {
      headers: {
-      Authorization: `Bearer ${process.env.CLICKPESA_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
      },
      timeout: 10000
@@ -71,6 +73,7 @@ class ClickPesaService {
 
    throw new Error("Mobile push request failed");
   }
+
  }
 
 }
