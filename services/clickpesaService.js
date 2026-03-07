@@ -32,12 +32,8 @@ class ClickPesaService {
 
  const amountStr = amount.toString();
 
-// token bila Bearer
-const tokenValue = token.split(" ")[1];
-
-// checksum string
 const payloadString =
- `${amountStr}TZS${reference}${phone}${tokenValue}`;
+ `${amountStr}${reference}${phone}TZS${process.env.CLICKPESA_API_KEY}`;
 
 const checksum = crypto
  .createHash("sha256")
