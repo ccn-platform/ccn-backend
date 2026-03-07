@@ -2,6 +2,34 @@
 
 class ClickPesaService {
 
+  // 🔐 1. PATA TOKEN
+  async getAccessToken() {
+
+    try {
+
+      const response = await axios.post(
+        "https://api.clickpesa.com/oauth/token",
+        {
+          client_id: process.env.CLICKPESA_CLIENT_ID,
+          client_secret: process.env.CLICKPESA_API_KEY
+        }
+      );
+
+      return response.data.access_token;
+
+    } catch (error) {
+
+      console.error(
+        "ClickPesa token error:",
+        error.response?.data || error.message
+      );
+
+      throw new Error("Failed to generate ClickPesa token");
+    }
+  }
+
+
+  // 💳 2. MOBILE PUSH
   async mobilePush(phone, amount, reference) {
 
     if (!amount || amount <= 0) {
@@ -24,7 +52,10 @@ class ClickPesaService {
 
     try {
 
-     const url = `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`;
+      // 🔑 pata token kwanza
+      const token = await this.getAccessToken();
+
+      const url = `${process.env.CLICKPESA_BASE_URL}/third-parties/payment`;
 
       console.log("ClickPesa URL:", url);
 
@@ -33,18 +64,16 @@ class ClickPesaService {
         {
           amount,
           currency: "TZS",
-         msisdn: phone,
+          msisdn: phone,
           reference,
           description: "CCN Agent Subscription"
         },
         {
           headers: {
-            "X-CLIENT-ID": process.env.CLICKPESA_CLIENT_ID,
-            "X-API-KEY": process.env.CLICKPESA_API_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json"
           },
-          timeout: 10000,
-          validateStatus: status => status >= 200 && status < 300
+          timeout: 10000
         }
       );
 
@@ -52,11 +81,6 @@ class ClickPesaService {
 
       if (!response.data) {
         throw new Error("Empty response from ClickPesa");
-      }
-
-      if (response.data.status === "FAILED") {
-        console.error("ClickPesa rejected request:", response.data);
-        throw new Error("ClickPesa rejected payment request");
       }
 
       return response.data;
