@@ -24,18 +24,14 @@ class ClickPesaService {
   try {
 
    const token = await clickpesaAuth.getToken();
-   
-const ipCheck = await axios.get("https://api.ipify.org?format=json");
-console.log("REAL SERVER IP:", ipCheck.data.ip);
-   
    const url =
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
    const amountStr = String(amount);
    const secret = process.env.CLICKPESA_API_SECRET.trim();
 
-   const payloadString =
-  `${amountStr}${reference}TZS${phone}${secret}`;
+    const payloadString =
+  `${amountStr}TZS${reference}${phone}${secret}`;
 
    const checksum = crypto
   .createHash("sha256")
