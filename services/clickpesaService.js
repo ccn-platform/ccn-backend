@@ -32,8 +32,8 @@ class ClickPesaService {
 
  const amountStr = amount.toString();
 
- const payloadString =
- `${amountStr}${reference}${phone}TZS${process.env.CLICKPESA_CLIENT_ID}`;
+  const payloadString =
+ `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_CLIENT_ID}`;
 
 const checksum = crypto
  .createHash("sha256")
