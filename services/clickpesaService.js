@@ -26,13 +26,11 @@ class ClickPesaService {
    const token = await clickpesaAuth.getToken();
    const url =
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
-
-  const amountStr = String(amount);
-const currency = "TZS";   // 🔥 HII NDIO ILIKUWA INAKOSEKANA
+const amountStr = String(amount);
 const secret = process.env.CLICKPESA_API_SECRET.trim();
 
 const payloadString =
-`${amountStr}${currency}${reference}${phone}${secret}`;
+`${amountStr}${reference}${phone}${secret}`;
 
 const checksum = crypto
 .createHash("sha256")
@@ -41,6 +39,7 @@ const checksum = crypto
 
 console.log("Checksum string:", payloadString);
 console.log("Checksum hash:", checksum);
+   
 
    const response = await axios.post(
     url,
