@@ -4,36 +4,26 @@ class ClickPesaAuthService {
 
  async getToken() {
 
-  try {
+  const url =
+   `${process.env.CLICKPESA_BASE_URL}/third-parties/generate-token`;
 
-   const response = await axios.post(
-    `${process.env.CLICKPESA_BASE_URL}/third-parties/generate-token`,
-    {},
-    {
-     headers: {
-      "api-key": process.env.CLICKPESA_API_KEY,
-      "client-id": process.env.CLICKPESA_CLIENT_ID
-     },
-     timeout: 10000
-    }
-   );
-
-   if (!response.data?.token) {
-    throw new Error("Token not returned from ClickPesa");
+  const response = await axios.post(
+   url,
+   {},
+   {
+    headers: {
+     "api-key": process.env.CLICKPESA_API_KEY,
+     "client-id": process.env.CLICKPESA_CLIENT_ID
+    },
+    timeout: 10000
    }
+  );
 
-   return response.data.token;
-
-  } catch (error) {
-
-   console.error(
-    "ClickPesa token error:",
-    error.response?.data || error.message
-   );
-
-   throw new Error("Failed to generate ClickPesa token");
+  if (!response.data || !response.data.token) {
+   throw new Error("Token not returned from ClickPesa");
   }
 
+  return response.data.token;
  }
 
 }
