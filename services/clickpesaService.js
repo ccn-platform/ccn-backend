@@ -27,16 +27,16 @@ class ClickPesaService {
    const url =
    `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
-   const amountStr = String(amount);
-   const secret = process.env.CLICKPESA_API_SECRET.trim();
-const payloadString =
-`${amountStr}${reference}${phone}${secret}`;
-    
+  const amountStr = String(amount);
+const secret = process.env.CLICKPESA_API_SECRET.trim();
 
-   const checksum = crypto
-   .createHash("sha256")
-   .update(payloadString, "utf8")
-   .digest("hex");
+const payloadString =
+`${amountStr}${reference}TZS${phone}${secret}`;
+
+const checksum = crypto
+.createHash("sha256")
+.update(payloadString, "utf8")
+.digest("hex");
 
    console.log("Checksum string:", payloadString);
    console.log("Checksum hash:", checksum);
