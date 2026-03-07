@@ -30,10 +30,14 @@ class ClickPesaService {
 
    console.log("ClickPesa URL:", url);
 
- const amountStr = amount.toString();
+  const amountStr = amount.toString();
 
-  const payloadString =
- `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_CLIENT_ID}`;
+// token bila neno Bearer
+const tokenValue = token.replace("Bearer ", "");
+
+// string ya checksum
+const payloadString =
+ `${amountStr}TZS${reference}${phone}${tokenValue}`;
 
 const checksum = crypto
  .createHash("sha256")
