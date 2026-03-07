@@ -10,17 +10,14 @@ class ClickPesaService {
    throw new Error("Invalid payment amount");
   }
 
+  // normalize Tanzania phone
   phone = phone.replace(/\D/g, "");
 
   if (phone.startsWith("0")) {
    phone = "255" + phone.slice(1);
   }
 
-  if (!phone.startsWith("255")) {
-   throw new Error("Invalid phone number format");
-  }
-
-  if (phone.length !== 12) {
+  if (!phone.startsWith("255") || phone.length !== 12) {
    throw new Error("Invalid Tanzania phone number");
   }
 
@@ -32,33 +29,39 @@ class ClickPesaService {
     `${process.env.CLICKPESA_BASE_URL}/third-parties/payments/initiate-ussd-push-request`;
 
    console.log("ClickPesa URL:", url);
-    
-// generate checksum
- 
-const payloadString =
- `${amount}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
-   
-const checksum = crypto
- .createHash("sha256")
- .update(payloadString)
- .digest("hex");
-const response = await axios.post(
- url,
- {
-  amount: amount.toString(),
-  currency: "TZS",
-  orderReference: reference,
-  phoneNumber: phone,
-  checksum: checksum
- },
- {
-  headers: {
-   Authorization: token,
-   "Content-Type": "application/json"
-  },
-  timeout: 10000
- }
-);
+
+   const amountStr = amount.toString();
+
+   // generate checksum
+   const payloadString =
+    `${amountStr}TZS${reference}${phone}${process.env.CLICKPESA_API_KEY}`;
+
+   const checksum = crypto
+    .createHash("sha256")
+    .update(payloadString)
+    .digest("hex");
+
+   console.log("Checksum string:", payloadString);
+   console.log("Checksum hash:", checksum);
+
+   const response = await axios.post(
+    url,
+    {
+     amount: amountStr,
+     currency: "TZS",
+     orderReference: reference,
+     phoneNumber: phone,
+     checksum: checksum
+    },
+    {
+     headers: {
+      Authorization: token,
+      "Content-Type": "application/json"
+     },
+     timeout: 10000
+    }
+   );
+
    console.log("ClickPesa response:", response.data);
 
    if (!response.data) {
