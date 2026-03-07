@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+  const mongoose = require("mongoose");
 
 const creditHistorySchema = new mongoose.Schema(
   {
@@ -63,4 +63,6 @@ const creditHistorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("CCreditHistory", creditHistorySchema);
+ module.exports =
+mongoose.models.CreditHistory ||
+mongoose.model("CreditHistory", creditHistorySchema);
