@@ -41,9 +41,15 @@ class AuthService {
     JWT_SECRET,
     { expiresIn: "30m" }
   );
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    JWT_SECRET,
+    { expiresIn: "5m" }
+  );
 
   
-  return { accessToken };
+    return { accessToken, refreshToken };
+
 }
   /**
    * ======================================================
@@ -206,7 +212,22 @@ if (!user.pin) {
     };
   }
 
- 
+   /**
+   * ======================================================
+   * REFRESH TOKEN
+   * ======================================================
+   */
+   async refreshToken(refreshToken) {
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) throw new Error("User not found.");
+    return this.generateTokens(user);
+  } catch {
+    throw new Error("Refresh token is invalid or expired.");
+  }
+}
+
 
   /**
    * ======================================================
