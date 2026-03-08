@@ -142,7 +142,7 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
         customerUser.expoPushToken,
         "LOAN_BLOCKED",
         {
-          reason: "Una deni overdue au defaulted kwenye category hii"
+          reason: "Una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)"
         }
       );
     }
