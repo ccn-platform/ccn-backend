@@ -70,16 +70,16 @@ class LoanController {
       return res.json({ loans: cached });
     }
   
-
- const loans = await Loan.find({ customer: customerId })
- .select("agent items amount totalPayable status createdAt dueDate")
-  .populate("agent", "businessName user")
+  const loans = await Loan.find({ customer: customerId })
+.select(
+  "agent items amount totalPayable status createdAt dueDate principalRemaining feesRemaining penaltiesRemaining amountPaid"
+)
+.populate("agent", "businessName user")
 .populate("agent.user", "phone fullName")
-
-  .sort({ createdAt: -1 })
-  .skip((page - 1) * limit)
-  .limit(limit)
-  .lean();
+.sort({ createdAt: -1 })
+.skip((page - 1) * limit)
+.limit(limit)
+.lean();
     const loanIds = loans.map(l => l._id);
 
     const controlNumbers = await ControlNumber.find({
