@@ -44,7 +44,7 @@ class AuthService {
   const refreshToken = jwt.sign(
     { userId: user._id },
     JWT_SECRET,
-    { expiresIn: "5m" }
+    { expiresIn: "15m" }
   );
 
   
