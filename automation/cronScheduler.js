@@ -1,9 +1,9 @@
- // backend/automation/cronScheduler.js
+  // backend/automation/cronScheduler.js
 
 const cron = require("node-cron");
 const dailyAutomation = require("./dailyAutomation");
-const loanStatusMonitor = require("./loanStatusMonitor");
  
+ const { markOverdueLoans } = require("../services/loanService"); 
 const riskAutoUpdateJob = require("./riskAutoUpdateJob");
 
 class CronScheduler {
@@ -13,8 +13,23 @@ class CronScheduler {
     // Daily summaries & cleanup
     cron.schedule("0 0 * * *", () => dailyAutomation.run());
 
-    // 🔁 Check overdue loans
-    cron.schedule("*/5 * * * *", () => loanStatusMonitor.run());
+    
+// 🔴 Mark overdue loans
+cron.schedule("*/5 * * * *", async () => {
+  try {
+
+    console.log("🔍 Checking overdue loans...");
+
+    await markOverdueLoans();
+
+    console.log("✔ Overdue loans updated");
+
+  } catch (err) {
+
+    console.error("❌ Overdue Cron Error:", err.message);
+
+  }
+});
 
     // ❌ REMOVED — control numbers should NEVER expire automatically
     // cron.schedule("*/30 * * * *", () => cleanupExpiredControlNumbers.run());
