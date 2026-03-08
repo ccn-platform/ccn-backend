@@ -74,8 +74,14 @@ class LoanController {
 .select(
   "agent items amount totalPayable status createdAt dueDate principalRemaining feesRemaining penaltiesRemaining amountPaid"
 )
-.populate("agent", "businessName user")
-.populate("agent.user", "phone fullName")
+ .populate({
+  path: "agent",
+  select: "businessName user",
+  populate: {
+    path: "user",
+    select: "phone fullName"
+  }
+})
 .sort({ createdAt: -1 })
 .skip((page - 1) * limit)
 .limit(limit)
