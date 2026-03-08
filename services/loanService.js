@@ -167,7 +167,7 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
   return {
     loanCreated: false,
     requiresAgentReview: true,
-    message: "na deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)",
+    message: "una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)",
     debts: debtResult.debts,
     summary: debtResult.summary,
   };
