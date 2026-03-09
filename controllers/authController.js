@@ -130,7 +130,7 @@ for (const u of possibleUsers) {
 
     return res.status(400).json({
       success: false,
-      message: "Majina haya yanafanana sana na account iliyopo."
+      message: "tayari una account."
     });
   }
 }
