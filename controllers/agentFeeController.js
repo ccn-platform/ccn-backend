@@ -89,12 +89,13 @@ const data = await agentFeeService.requestPayment(
   try {
 
     // 🔐 IP whitelist
-    const allowedIPs = [
-      "74.220.49.248",
-      "74.220.49.249",
-      "74.220.49.253"
-    ];
-
+ 
+const allowedIPs = [
+  "74.220.49.248",
+  "74.220.49.249",
+  "74.220.49.253",
+  "155.12.30.51"
+];
     let ip =
   req.headers["x-forwarded-for"] ||
   req.socket.remoteAddress ||
