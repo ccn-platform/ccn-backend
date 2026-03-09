@@ -1,4 +1,4 @@
-  const mongoose = require("mongoose");
+    const mongoose = require("mongoose");
 const AgentFee = require("../models/agentFee");
 const AgentFeePayment = require("../models/agentFeePayment");
  
@@ -69,7 +69,47 @@ async function syncAgentFeeSnapshot(agentId, fee) {
 }
 
 class AgentFeeService {
-  
+ // ======================================================
+// SEND PUSH WITH RETRY (IMPROVES SUCCESS RATE)
+// ======================================================
+
+async sendPushWithRetry(phone, amount, reference) {
+
+  const maxRetries = 3;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+
+    try {
+
+      console.log(`📲 Sending push attempt ${attempt + 1}`);
+
+      const result = await clickpesaService.mobilePush(
+        phone,
+        amount,
+        reference
+      );
+
+      console.log("ClickPesa push sent:", result);
+
+      return result;
+
+    } catch (error) {
+
+      attempt++;
+
+      console.log(`⚠ Push attempt ${attempt} failed`);
+
+      if (attempt >= maxRetries) {
+        throw new Error("Push failed after multiple attempts");
+      }
+
+      // subiri sekunde 20 kabla ya retry
+      await new Promise(resolve => setTimeout(resolve, 20000));
+
+    }
+  }
+}
     /**
  * ======================================================
  * CREATE INITIAL FEE (FREE TRIAL – FIRST TIME ONLY)
@@ -223,13 +263,11 @@ if (existingPending) {
   // ⭐ MOBILE MONEY PUSH
  try {
 
-   const push = await clickpesaService.mobilePush(
+   await this.sendPushWithRetry(
   phone,
   plan.amount,
   reference
 );
-
-console.log("ClickPesa push sent:", push);
 
 } catch (error) {
 
