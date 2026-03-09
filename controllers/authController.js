@@ -1,6 +1,7 @@
   const authService = require("../services/authService");
 const User = require("../models/User");
  const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
+const isNameTooSimilar = require("../utils/nameSimilarity");
 const Logger = require("../services/loggerService"); // 🆕 ADD ONLY — SAFE
  // =============================================
 // 🇹🇿 FULL NAME VALIDATION (LOAN PLATFORM LEVEL)
@@ -96,7 +97,8 @@ console.log("BODY:", req.body);
       // ===============================
 // FULL NAME VALIDATION
 // ===============================
- try {
+const guard = req.registerGuard || null;
+  try {
   req.body.fullName = validateFullNameTZ(req.body.fullName);
 } catch (e) {
   return res.status(400).json({
@@ -104,6 +106,36 @@ console.log("BODY:", req.body);
     message: e.message,
   });
 }
+// ===============================
+// NAME SIMILARITY CHECK (ANTI FRAUD)
+// ===============================
+const parts = req.body.fullName.split(" ");
+const searchKey = `${parts[0]} ${parts[1]}`;
+fullName: { $regex: `^${parts[0]}`, $options: "i" }
+const possibleUsers = await User.find({
+ 
+}).limit(10);
+
+for (const u of possibleUsers) {
+
+  if (isNameTooSimilar(u.fullName, req.body.fullName)) {
+
+    if (guard) {
+      guard.attempts += 1;
+
+      if (guard.attempts >= 2) {
+        guard.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await guard.save();
+      }
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: "Majina haya yanafanana sana na account iliyopo."
+    });
+  }
+}
+      
       // -----------------------------
       // Normalize phone (extra safety)
       // -----------------------------
@@ -114,7 +146,7 @@ console.log("BODY:", req.body);
       // ===============================
 // 🚨 FRAUD CONTROL → FACE kutumia phone iliyopo
 // ===============================
- const guard = req.registerGuard || null;
+ 
  // 🚫 CHECK kama tayari blocked
 if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
   return res.status(429).json({
@@ -125,8 +157,7 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
 
  if (req.body.biometricId && req.body.phone) {
 
-  const normalizedPhone = normalizePhone(req.body.phone);  // ⭐ muhimu
-
+  const normalizedPhone = req.body.phone;
   const existingUser = await User.findOne({
     phoneNormalized: normalizedPhone
   });
