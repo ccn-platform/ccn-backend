@@ -87,50 +87,71 @@ const data = await agentFeeService.requestPayment(
  */
  exports.agentFeePaymentWebhook = async (req, res, next) => {
   try {
-  const signature =
-  req.headers["x-clickpesa-signature"] ||
-  req.headers["X-Clickpesa-Signature"];
 
-if (!signature) {
-  return res.status(400).send("Missing webhook signature");
-}
-  const payload = JSON.stringify(req.body || {});
+    // 🔐 IP whitelist
+    const allowedIPs = [
+      "74.220.49.248",
+      "74.220.49.249",
+      "74.220.49.253"
+    ];
 
-const expectedSignature = crypto
-  .createHmac("sha256", process.env.CLICKPESA_WEBHOOK_SECRET)
-  .update(payload)
-  .digest("hex");
+    let ip =
+  req.headers["x-forwarded-for"] ||
+  req.socket.remoteAddress ||
+  req.ip ||
+  "";
 
-if (signature !== expectedSignature) {
-  return res.status(401).send("Invalid webhook signature");
-}
+ip = ip.split(",")[0].replace("::ffff:", "").trim();
 
- 
+    console.log("Webhook request IP:", ip);
 
-    const { reference, transaction_id, status } = req.body;
-
-    // ⭐ Verify payment success
-    if (status !== "SUCCESS") {
-      return res.sendStatus(200);
+     if (!allowedIPs.includes(ip)) {
+      return res.status(403).send("Unauthorized IP");
     }
 
-     try {
-  await agentFeeService.processPayment({
-    reference,
-    transactionId: transaction_id,
-    provider: "clickpesa",
-  });
-} catch (err) {
-  console.error("Webhook processing error:", err.message);
+   console.log("ClickPesa webhook payload:", JSON.stringify(req.body));
+
+    const reference =
+      req.body.reference ||
+      req.body.orderReference;
+
+    const transactionId =
+  req.body.transaction_id ||
+  req.body.transactionId ||
+  null;
+
+    const status =
+      req.body.status ||
+      req.body.paymentStatus;
+
+   if (!status || status !== "SUCCESS") {
+  console.log("Payment not successful:", status);
+  return res.sendStatus(200);
 }
 
-res.sendStatus(200);
+     if (!reference) {
+  console.log("Webhook missing reference");
+  return res.sendStatus(200);
+}
+
+await agentFeeService.processPayment({
+  reference,
+  transactionId,
+  provider: "clickpesa"
+});
+
+   console.log("Payment processed:", {
+  reference,
+  transactionId
+});
+
+    return res.sendStatus(200);
 
   } catch (error) {
+    console.error("Webhook error:", error);
     next(error);
   }
 };
-
 /**
  * ======================================================
  * PAYMENT HISTORY
