@@ -201,8 +201,19 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
 if (req.body.nationalId) {
 
   try {
-    // normalize first
     req.body.nationalId = normalizeNida(req.body.nationalId);
+
+    const existingNida = await User.findOne({
+  nationalId: req.body.nationalId
+});
+
+if (existingNida) {
+  return res.status(400).json({
+    success: false,
+    message: " tayari umeshasajiliwa kwenye mfumo.",
+  });
+}
+    
   } catch (e) {
     if (guard) {
       guard.attempts += 1;
