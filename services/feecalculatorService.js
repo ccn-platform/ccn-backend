@@ -20,7 +20,7 @@ class FeeCalculatorService {
       { min: 150000, max: 199999, appFee: 2500, approvalFee: 2500 },
       { min: 200000, max: 299999, appFee: 2500, approvalFee: 3000 },
       { min: 300000, max: 499999, appFee: 3000, approvalFee: 3000 },
-      { min: 500000, max: 999999, appFee: 3000, approvalFee: 4000 },
+      { min: 500000, max: 999999999999, appFee: 3000, approvalFee: 4000 },
     ];
   }
 
