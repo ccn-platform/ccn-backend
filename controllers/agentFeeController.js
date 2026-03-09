@@ -105,27 +105,17 @@ const allowedIPs = [
 ip = ip.split(",")[0].replace("::ffff:", "").trim();
 
     console.log("Webhook request IP:", ip);
-if (
-  !allowedIPs.includes(ip) &&
-  !ip.startsWith("155.")
-) {
-  return res.status(403).send("Unauthorized IP");
+
+    if (!ip.startsWith("155.") && !allowedIPs.includes(ip)) {
+ return res.status(403).send("Unauthorized IP");
 }
-    
    console.log("ClickPesa webhook payload:", JSON.stringify(req.body));
 
-    const reference =
-      req.body.reference ||
-      req.body.orderReference;
+   const payload = req.body.data || {};
 
-    const transactionId =
-  req.body.transaction_id ||
-  req.body.transactionId ||
-  null;
-
-    const status =
-      req.body.status ||
-      req.body.paymentStatus;
+const reference = payload.orderReference;
+const transactionId = payload.paymentReference;
+const status = payload.status;
 
    if (!status || status !== "SUCCESS") {
   console.log("Payment not successful:", status);
