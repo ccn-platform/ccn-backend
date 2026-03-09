@@ -1,6 +1,16 @@
- const axios = require("axios");
+  require("dns").setDefaultResultOrder("ipv4first");
+
+const axios = require("axios");
+const https = require("https");
 const clickpesaAuth = require("./clickpesaAuthService");
 
+const axiosClient = axios.create({
+ httpsAgent: new https.Agent({
+  keepAlive: true,
+  maxSockets: 50
+ }),
+ timeout: 10000
+});
 class ClickPesaService {
 
  async mobilePush(phone, amount, reference) {
@@ -28,7 +38,7 @@ class ClickPesaService {
 
    const amountStr = String(amount);
 
-   const response = await axios.post(
+    const response = await axiosClient.post(
     url,
     {
      amount: amountStr,
@@ -41,7 +51,6 @@ class ClickPesaService {
       Authorization: token,
       "Content-Type": "application/json"
      },
-     timeout: 10000
     }
    );
 
