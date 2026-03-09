@@ -106,14 +106,13 @@ const guard = req.registerGuard || null;
     message: e.message,
   });
 }
-// ===============================
+ // ===============================
 // NAME SIMILARITY CHECK (ANTI FRAUD)
 // ===============================
 const parts = req.body.fullName.split(" ");
-const searchKey = `${parts[0]} ${parts[1]}`;
-fullName: { $regex: `^${parts[0]}`, $options: "i" }
+
 const possibleUsers = await User.find({
- 
+  fullName: { $regex: `^${parts[0]}`, $options: "i" }
 }).limit(10);
 
 for (const u of possibleUsers) {
