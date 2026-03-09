@@ -105,11 +105,13 @@ const allowedIPs = [
 ip = ip.split(",")[0].replace("::ffff:", "").trim();
 
     console.log("Webhook request IP:", ip);
-
-     if (!allowedIPs.includes(ip)) {
-      return res.status(403).send("Unauthorized IP");
-    }
-
+if (
+  !allowedIPs.includes(ip) &&
+  !ip.startsWith("155.")
+) {
+  return res.status(403).send("Unauthorized IP");
+}
+    
    console.log("ClickPesa webhook payload:", JSON.stringify(req.body));
 
     const reference =
