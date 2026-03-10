@@ -1,4 +1,4 @@
-  const crypto = require("crypto");
+     const crypto = require("crypto");
  const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -92,6 +92,14 @@ async registerCustomer(data) {
     }
   }
 
+  // ==========================================
+// 🔒 IDENTITY HASH (ANTI DUPLICATE)
+// ==========================================
+
+const identityHash = crypto
+  .createHash("sha256")
+  .update(fullName + normalized + (nationalId || ""))
+  .digest("hex");
   
   // 4️⃣ CREATE USER
  
@@ -104,6 +112,7 @@ const customerId = idGenerator.generateCustomerID();
   pin,
   role: "customer",
   systemId: customerId,
+   identityHash
 };
 // only add nationalId if exists
 if (nationalId) {
@@ -162,55 +171,111 @@ try {
    * LOGIN
    * ======================================================
    */
-  async loginWithPin({ phone, pin }) {
+   async loginWithPin({ phone, pin, appType }) {
 
-    const normalized = normalizePhone(phone);
+const normalized = normalizePhone(phone);
 this.validatePin(pin);
 
- const user = await User.findOne({ phone: normalized }).select("+pin");
-    if (!user) throw new Error("Akaunti haipo.");
+// ======================================
+// APP TYPE VALIDATION
+// ======================================
+
+ const allowedApps = ["customer", "agent", "admin"];
+
+if (!appType || !allowedApps.includes(appType)) {
+  throw new Error("Invalid application access.");
+}
+
+// ======================================
+// FIND USER
+// ======================================
+
+const user = await User
+  .findOne({ phoneNormalized: normalized })
+  .select("+pin");
+
+if (!user) throw new Error("Akaunti haipo.");
+
+// ======================================
+// APP ROLE GUARD
+// ======================================
+
+if (appType === "customer" && user.role !== "customer") {
+  throw new Error("Tafadhali tumia CCN Business App kuingia.");
+}
+
+if (appType === "agent" && user.role !== "agent") {
+  throw new Error("Tafadhali tumia CCN Customer App kuingia.");
+}
+
+if (appType === "admin" && user.role !== "admin") {
+  throw new Error("Admin access only.");
+}
+
+// ======================================
+// SECURITY CHECKS
+// ======================================
 
 if (!user.pin) {
   throw new Error("Authentication error.");
 }
-    if (user.blockedUntil && new Date() < user.blockedUntil) {
-      throw new Error("Akaunti imezuiwa kwa muda.");
-    }
-    if (user.isBlocked || user.isLocked) {
+
+if (user.blockedUntil && new Date() < user.blockedUntil) {
+  throw new Error("Akaunti imezuiwa kwa muda.");
+}
+
+if (user.isBlocked || user.isLocked) {
   throw new Error("Akaunti imefungwa.");
 }
 
-   const match = await user.comparePin(pin);
-    if (!match) {
-      user.loginAttempts = (user.loginAttempts || 0) + 1;
+// ======================================
+// PIN VERIFICATION
+// ======================================
 
-      if (user.loginAttempts >= 5) {
-        user.blockedUntil = new Date(Date.now() + 30 * 60 * 1000);
-      }
+const match = await user.comparePin(pin);
 
-      await user.save();
-      throw new Error("PIN sio sahihi.");
-    }
+if (!match) {
 
-    user.loginAttempts = 0;
-    user.blockedUntil = null;
-    user.lastLogin = new Date();
-    await user.save();
+  user.loginAttempts = (user.loginAttempts || 0) + 1;
 
-    const tokens = this.generateTokens(user);
-
-    let onboardingStep = null;
-    if (user.role === "agent") {
-      const agent = await Agent.findOne({ user: user._id }).select("onboardingStep");
-      onboardingStep = agent?.onboardingStep || "PAYOUT_REQUIRED";
-    }
-
-    return {
-      user,
-      onboardingStep,
-      ...tokens,
-    };
+  if (user.loginAttempts >= 5) {
+    user.blockedUntil = new Date(Date.now() + 30 * 60 * 1000);
   }
+
+  await user.save();
+
+  throw new Error("PIN sio sahihi.");
+}
+
+// ======================================
+// LOGIN SUCCESS
+// ======================================
+
+user.loginAttempts = 0;
+user.blockedUntil = null;
+user.lastLogin = new Date();
+
+await user.save();
+
+const tokens = this.generateTokens(user);
+
+let onboardingStep = null;
+
+if (user.role === "agent") {
+  const agent = await Agent
+    .findOne({ user: user._id })
+    .select("onboardingStep");
+
+  onboardingStep = agent?.onboardingStep || "PAYOUT_REQUIRED";
+}
+
+return {
+  user,
+  onboardingStep,
+  ...tokens,
+};
+
+}
 
    /**
    * ======================================================
@@ -220,6 +285,10 @@ if (!user.pin) {
    async refreshToken(refreshToken) {
   try {
     const decoded = jwt.verify(refreshToken, JWT_SECRET);
+  if (!decoded.userId) {
+    throw new Error("Invalid token.");
+  }
+
     const user = await User.findById(decoded.userId);
     if (!user) throw new Error("User not found.");
     return this.generateTokens(user);
@@ -240,7 +309,8 @@ if (!user.pin) {
      const normalized = normalizePhone(phone);
 
     this.validatePin(pin);
- const exists = await User.findOne({ phone: normalized });
+ const exists = await User.findOne({ phoneNormalized: normalized });
+
     if (exists) throw new Error("Namba tayari imesajiliwa.");
 
     const category = await BusinessCategory.findById(businessCategoryId);
@@ -280,7 +350,7 @@ if (!user.pin) {
  const normalized = normalizePhone(phone);
    
     this.validatePin(pin);
-  const exists = await User.findOne({ phone: normalized });
+   const exists = await User.findOne({ phoneNormalized: normalized });
     if (exists) throw new Error("tayari umeshasajiliwa.");
  
     const adminId = idGenerator.generateAdminID?.() || `ADM-${Date.now()}`;
@@ -305,7 +375,7 @@ if (!user.pin) {
   const normalized = normalizePhone(rawPhone);
 
   // 2️⃣ Find user
-   const user = await User.findOne({ phone: normalized });
+  const user = await User.findOne({ phoneNormalized: normalized });
   if (!user) return; // usionyeshe kama user haipo
 
   // 3️⃣ Generate code
@@ -353,7 +423,7 @@ async resetPin({ rawPhone, code, newPin }) {
   const normalized = normalizePhone(rawPhone);
   this.validatePin(newPin);
 
- const user = await User.findOne({ phone: normalized });
+  const user = await User.findOne({ phoneNormalized: normalized });
   if (!user) throw new Error("Invalid request");
 
   const hashedCode = crypto
