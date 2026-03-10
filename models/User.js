@@ -1,5 +1,3 @@
-    
-
  
  const mongoose = require("mongoose");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADD THIS
@@ -16,15 +14,22 @@ const UserSchema = new mongoose.Schema(
       required: true,
      },
 
+
 phoneNormalized: {
   type: String,
   default: null,
 },
     
     nationalId: {
-  type: String,
-  default: undefined, // muhimu sana
-},
+     type: String,
+     default: undefined, // muhimu sana
+  },
+
+  identityHash: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
 
     pin: { type: String, required: true, select: false },
 
@@ -160,10 +165,14 @@ UserSchema.index({ expoPushToken: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ resetPinExpiresAt: 1 });
 UserSchema.index({ systemId: 1 }, { unique: true });
+UserSchema.index({ identityHash: 1 }, { unique: true });
 // unique only when exists
 UserSchema.index(
   { nationalId: 1 },
   { unique: true, sparse: true }
 );
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = mongoose.model("User", UserSchema);         
+
+
+ 
