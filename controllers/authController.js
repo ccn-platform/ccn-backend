@@ -1,4 +1,5 @@
-  const authService = require("../services/authService");
+  
+    const authService = require("../services/authService");
 const User = require("../models/User");
  const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const isNameTooSimilar = require("../utils/nameSimilarity");
@@ -111,7 +112,7 @@ const guard = req.registerGuard || null;
 // ===============================
 const parts = req.body.fullName.split(" ");
 
-const possibleUsers = await User.find({
+ const possibleUsers = await User.find({
   fullName: { $regex: `^${parts[0]}`, $options: "i" }
 }).limit(10);
 
@@ -142,6 +143,26 @@ for (const u of possibleUsers) {
         req.body.phone = normalizePhone(req.body.phone);
       }
 
+   // ==========================================
+// 🔒 GLOBAL DUPLICATE CHECK (PHONE / NIDA)
+// ==========================================
+
+ const normalizedPhone = req.body.phone;
+
+ const duplicate = await User.findOne({
+  $or: [
+    { phoneNormalized: req.body.phone },
+    { nationalId: req.body.nationalId }
+  ]
+});
+
+if (duplicate) {
+  return res.status(400).json({
+    success: false,
+    message: "Tayari una account kwenye mfumo."
+  });
+}
+
       // ===============================
 // 🚨 FRAUD CONTROL → FACE kutumia phone iliyopo
 // ===============================
@@ -157,10 +178,11 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
  if (req.body.biometricId && req.body.phone) {
 
   const normalizedPhone = req.body.phone;
-  const existingUser = await User.findOne({
-    phoneNormalized: normalizedPhone
-  });
 
+ const existingUser = await User.findOne({
+  phoneNormalized: req.body.phone
+});
+ 
   if (existingUser) {
 
     // =========================================
@@ -478,4 +500,5 @@ if (existingNida) {
   }
 }
 
-module.exports = new AuthController();
+module.exports = new AuthController();                
+ 
