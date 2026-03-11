@@ -1,8 +1,9 @@
- // controllers/userController.js
+  // controllers/userController.js
 
 const userService = require("../services/userService");
 const normalizePhone = require("../utils/normalizePhone"); // ⭐ ADDED
 const Loan = require("../models/Loan");
+ const Agent = require("../models/Agent");
 
 class UserController {
   /**
@@ -227,7 +228,7 @@ async requestDeleteAccount(req, res) {
     if (user.deleteRequested) {
       return res.status(400).json({
         success: false,
-        message: "Delete request already submitted.",
+        message: "Tayari umeomba kufuta akaunti. Tafadhali subiri mchakato ukamilike.",
       });
     }
 
@@ -250,6 +251,33 @@ async requestDeleteAccount(req, res) {
     }
 
     // ===============================
+// AGENT: lazima asiwe na madeni aliyokopesha
+// ===============================
+if (role === "agent") {
+
+  const agent = await Agent.findOne({ user: user._id });
+
+  if (!agent) {
+    return res.status(400).json({
+      success: false,
+      message: "Agent account not found.",
+    });
+  }
+
+  const activeLoans = await Loan.exists({
+      agent: agent._id,
+      status: { $in: ["active", "overdue", "pending_agent_review"] },
+   });
+
+  if (activeLoans) {
+    return res.status(400).json({
+      success: false,
+     message:
+      "Huwezi kufuta account yako kwa sababu bado kuna mikopo ya wateja haijalipwa. Tafadhali hakikisha madeni yote yamelipwa kwanza."
+    });
+  }
+}
+    // ===============================
     // SAVE REQUEST
     // ===============================
     user.deleteRequested = true;
@@ -259,8 +287,9 @@ async requestDeleteAccount(req, res) {
     return res.json({
       success: true,
       message:
-        "Account deletion request received. It will be processed within 48 hours.",
-    });
+       "Tumepokea ombi lako la kufuta akaunti. Akaunti yako itafutwa ndani ya saa 48 baada ya kuthibitishwa kuwa hakuna deni linaloendelea.",
+     });
+
   } catch (err) {
     console.error("DELETE REQUEST ERROR:", err);
     return res.status(500).json({
@@ -274,4 +303,3 @@ async requestDeleteAccount(req, res) {
 }
 
 module.exports = new UserController();
- 
