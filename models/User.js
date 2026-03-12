@@ -86,8 +86,10 @@ phoneNormalized: {
      * 🆕 FORGOT PIN / RESET PIN (SAFE ADD)
      * ======================================================
      */
- resetPinCode: { type: String, select: false, default: null },
+   resetPinCode: { type: String, select: false, default: null },
     resetPinExpiresAt: { type: Date, default: null },
+    resetPinAttempts: { type: Number, default: 0 },
+    resetPinBlockedUntil: { type: Date, default: null },
 /**
  * ======================================================
  * 🗑️ ACCOUNT DELETE REQUEST
@@ -160,7 +162,8 @@ UserSchema.index({ businessCategory: 1 });
 
 UserSchema.index({ phoneNormalized: 1, isBlocked: 1 });
 // push notification performance
- 
+ UserSchema.index({ phoneNormalized: 1, role: 1 });
+ UserSchema.index({ phoneNormalized: 1, role: 1, isBlocked: 1 });
 UserSchema.index({ expoPushToken: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ resetPinExpiresAt: 1 });
