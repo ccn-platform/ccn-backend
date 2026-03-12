@@ -1,4 +1,4 @@
-   const mongoose = require("mongoose");
+      const mongoose = require("mongoose");
 const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -37,16 +37,18 @@ class LoanService {
    * ======================================================
    */
    async checkBorrowingEligibility(customerId) {
+ 
+    const activeCount = await ControlNumber.countDocuments({
+  customer: customerId,
+  status: "active"
+});
 
-  const activeCount = await ControlNumber.countDocuments({
-    customer: customerId,
-    status: "active"
-  });
+  
 
   if (activeCount >= 3) {
     return {
       allowed: false,
-      reason: "Una madeni zaidi ya 3 lipa  kwanza ili kuendelea kupata huduma  asante",
+      reason: "Una madeni zaidi ya 3 lipa kwanza ili kuendelea kupata huduma asante",
       code: "TOO_MANY_ACTIVE_CN"
     };
   }
@@ -60,14 +62,13 @@ class LoanService {
   if (overdueExists) {
     return {
       allowed: false,
-      reason: "Una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)",
+      reason: "Una deni ambalo limevuka muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante (overdue)",
       code: "OVERDUE_LOAN"
     };
   }
 
   return { allowed: true };
 }
-
   /**
    * ======================================================
    * 2️⃣ CREATE LOAN REQUEST
@@ -84,19 +85,44 @@ if (!customerUser) {
 }
 
     if (!agent) throw new Error("Agent ID inahitajika.");
+
+const agentDoc = await Agent.findById(agent)
+  .select("user businessCategory businessName agentId systemId")
+  .lean();
+
+if (!agentDoc) throw new Error("Wakala hakupatikana.");
+
+let agentUser = null;
+
+if (agentDoc.user) {
+  agentUser = await User.findById(agentDoc.user)
+    .select("fullName phone expoPushToken")
+    .lean();
+  }
     if (!repaymentPeriod || repaymentPeriod < 1)
       throw new Error("Weka muda sahihi wa kulipa mkopo.");
     if (!items || !Array.isArray(items) || items.length === 0)
       throw new Error("Ongeza bidhaa angalau moja.");
 
- 
+    // 🔒 PREVENT MULTIPLE PENDING LOANS
+ const pendingLoan = await Loan.exists({
+  customer,
+  status: "pending_agent_review"
+}).lean();
 
-const eligibility = await this.checkBorrowingEligibility(customer);
+if (pendingLoan) {
+  throw new Error(
+    "Tafadhali subiri wakala achunguze ombi lako la mkopo lililotangulia."
+  );
+}
+
+ const eligibility = await this.checkBorrowingEligibility(customer);
 
 if (!eligibility.allowed) {
 
   try {
 
+    // notify customer
     if (customerUser?.expoPushToken) {
       await pushService.sendTemplate(
         customerUser.expoPushToken,
@@ -106,6 +132,22 @@ if (!eligibility.allowed) {
         }
       );
     }
+ 
+ if (agentUser?.expoPushToken) {
+
+  await pushService.sendTemplate(
+    agentUser.expoPushToken,
+    "LOAN_BLOCKED_FOR_AGENT",
+    {
+      name: customerUser?.fullName || "Mteja",
+      reason: eligibility.reason
+    }
+  );
+
+}
+
+     
+
   } catch (err) {
     console.error("Push notification failed:", err.message);
   }
@@ -113,11 +155,7 @@ if (!eligibility.allowed) {
   throw new Error(eligibility.reason);
 }
  
- const agentDoc = await Agent.findById(agent)
-.select("user businessCategory businessName agentId systemId")
-.lean();
  
-if (!agentDoc) throw new Error("Wakala hakupatikana.");
       
 
     const categoryId = agentDoc.businessCategory;
@@ -142,23 +180,21 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
         customerUser.expoPushToken,
         "LOAN_BLOCKED",
         {
-          reason: "Una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)"
+          reason: "Una deni overdue au defaulted kwenye category hii"
         }
       );
     }
 
     // notify agent
-    if (agentDoc.user) {
-      const agentUser = await User.findById(agentDoc.user);
+     if (agentUser?.expoPushToken) {
 
-      if (agentUser?.expoPushToken) {
-        await pushService.sendTemplate(
-          agentUser.expoPushToken,
-          "LOAN_REJECTED",
-          { name: "Mteja" }
-        );
-      }
-    }
+  await pushService.sendTemplate(
+    agentUser.expoPushToken,
+    "LOAN_REJECTED",
+    { name: "Mteja" }
+  );
+
+}
 
   } catch (err) {
     console.error("Push error:", err.message);
@@ -167,7 +203,7 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
   return {
     loanCreated: false,
     requiresAgentReview: true,
-    message: "una deni ambalo limevuka  muda ulio ahidi kulipa lipa ili kuendelea kupata huduma asante( overdue)",
+    message: "Mteja ana deni lililo overdue/defaulted.",
     debts: debtResult.debts,
     summary: debtResult.summary,
   };
@@ -177,14 +213,11 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + repaymentPeriod);
 
-     const agentUser = agentDoc.user
-  ? await User.findById(agentDoc.user).select("fullName phone expoPushToken")
-  : null;
-     
-const categoryDoc = categoryId
-  ? await BusinessCategory.findById(categoryId).select("name")
-  : null;
     
+     const categoryDoc = categoryId
+      ? await BusinessCategory.findById(categoryId).select("name").lean()
+      : null;
+ 
     const loan = await Loan.create({
       customer,
       agent,
@@ -381,8 +414,11 @@ const categoryDoc = categoryId
 
     setImmediate(async () => {
       try {
- 
-        const customerUser = await User.findById(loan.customer);
+  
+       const customerUser = await User.findById(loan.customer)
+        .select("expoPushToken")
+        .lean();
+
         if (customerUser?.expoPushToken) {
           await pushService.sendTemplate(
             customerUser.expoPushToken,
@@ -452,7 +488,8 @@ const categoryDoc = categoryId
   async getCustomerDebtsForLoanReview(loanId, agentId) {
     
 const loan = await Loan.findById(loanId)
-.select("agent customer agentCategory status");
+ .select("agent customer agentCategory status")
+ .lean();
 
     if (!loan) throw new Error("Loan haipo.");
     if (String(loan.agent) !== String(agentId))
@@ -473,7 +510,7 @@ const loan = await Loan.findById(loanId)
    */
   async agentRejectLoan(agentId, loanId, reason = null) {
     const loan = await Loan.findById(loanId)
-    .select("agent customer status customerSnapshot");
+     .select("agent customer status customerSnapshot");
 
     if (!loan) throw new Error("Loan haipo.");
     if (String(loan.agent) !== String(agentId))
@@ -506,8 +543,10 @@ const loan = await Loan.findById(loanId)
        source: "AGENT",
      });
 
- 
-    const customerUser = await User.findById(loan.customer);
+ const customerUser = await User.findById(loan.customer)
+  .select("expoPushToken")
+  .lean();
+     
 
     if (customerUser?.expoPushToken) {
       await pushService.sendTemplate(
@@ -572,4 +611,3 @@ module.exports = {
   markOverdueLoans
 };
   
- 
