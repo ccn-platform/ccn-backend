@@ -110,12 +110,7 @@ if (agentDoc.user) {
   status: "pending_agent_review"
 }).lean();
 
-if (pendingLoan) {
-  throw new Error(
-    "Tafadhali subiri wakala achunguze ombi lako la mkopo lililotangulia."
-  );
-}
-
+ 
  const eligibility = await this.checkBorrowingEligibility(customer);
 
 if (!eligibility.allowed) {
