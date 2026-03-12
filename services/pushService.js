@@ -123,6 +123,12 @@ class PushService {
         body: `Samahani ${data.name}, ombi lako halijakubaliwa.`,
       },
 
+
+      LOAN_BLOCKED_FOR_AGENT: {
+       title: "Ombi la mkopo limezuiwa",
+       body: `${data.name} ombi lake la mkopo limezuiwa kuja kwako kwa sababu ${data.reason}`,
+     },
+
       CONTROL_NUMBER: {
         title: "Control Number Imekamilika",
         body: `Control Number: ${data.cn} | Kiasi: ${data.amount} TZS.`,
