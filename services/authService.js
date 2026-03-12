@@ -419,11 +419,15 @@ return {
 // RESET PIN
 // ======================================================
  
-async resetPin({ rawPhone, code, newPin }) {
+ async resetPin({ rawPhone, code, newPin }) {
+
   const normalized = normalizePhone(rawPhone);
   this.validatePin(newPin);
 
-  const user = await User.findOne({ phoneNormalized: normalized });
+  const user = await User
+    .findOne({ phoneNormalized: normalized })
+   .select("+resetPinCode resetPinExpiresAt");
+
   if (!user) throw new Error("Invalid request");
 
   const hashedCode = crypto
@@ -439,8 +443,7 @@ async resetPin({ rawPhone, code, newPin }) {
     throw new Error("Code si sahihi au ime-expire");
   }
 
-  // 🔐 HASH PIN (MUHIMU SANA)
-  user.pin = await bcrypt.hash(newPin, 10);
+  user.pin = newPin; // schema itahash
 
   user.resetPinCode = null;
   user.resetPinExpiresAt = null;
