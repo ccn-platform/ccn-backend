@@ -192,7 +192,9 @@ if (!appType || !allowedApps.includes(appType)) {
 
 const user = await User
   .findOne({ phoneNormalized: normalized })
- .select("_id role blockedUntil loginAttempts isBlocked isLocked +pin");
+  .select(
+"_id systemId fullName phone role blockedUntil loginAttempts isBlocked isLocked +pin"
+);
 
 if (!user) throw new Error("Akaunti haipo.");
 
