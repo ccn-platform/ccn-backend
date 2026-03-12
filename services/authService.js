@@ -192,7 +192,7 @@ if (!appType || !allowedApps.includes(appType)) {
 
 const user = await User
   .findOne({ phoneNormalized: normalized })
-  .select("+pin");
+ .select("_id role blockedUntil loginAttempts isBlocked isLocked +pin");
 
 if (!user) throw new Error("Akaunti haipo.");
 
@@ -378,6 +378,9 @@ return {
   const user = await User.findOne({ phoneNormalized: normalized });
   if (!user) return; // usionyeshe kama user haipo
 
+ if (user.resetPinExpiresAt && user.resetPinExpiresAt > Date.now()) {
+  throw new Error("Subiri kidogo kabla ya kuomba code nyingine.");
+}
   // 3️⃣ Generate code
    const code = crypto.randomInt(100000, 999999).toString();
 
@@ -426,31 +429,48 @@ return {
 
   const user = await User
     .findOne({ phoneNormalized: normalized })
-   .select("+resetPinCode resetPinExpiresAt");
-
+   .select("+resetPinCode resetPinExpiresAt resetPinAttempts resetPinBlockedUntil");
   if (!user) throw new Error("Invalid request");
 
+  // 🚫 kama user amezuiwa
+if (user.resetPinBlockedUntil && new Date() < user.resetPinBlockedUntil) {
+  throw new Error("Jaribu tena baada ya dakika 10");
+}
   const hashedCode = crypto
     .createHash("sha256")
     .update(code)
     .digest("hex");
 
   if (
-    user.resetPinCode !== hashedCode ||
-    !user.resetPinExpiresAt ||
-    user.resetPinExpiresAt < Date.now()
-  ) {
-    throw new Error("Code si sahihi au ime-expire");
+  user.resetPinCode !== hashedCode ||
+  !user.resetPinExpiresAt ||
+  user.resetPinExpiresAt < Date.now()
+) {
+
+  user.resetPinAttempts = (user.resetPinAttempts || 0) + 1;
+
+  // 🔒 block baada ya majaribio 5
+  if (user.resetPinAttempts >= 5) {
+    user.resetPinBlockedUntil = new Date(Date.now() + 10 * 60 * 1000);
+    user.resetPinAttempts = 0;
   }
 
-  user.pin = newPin; // schema itahash
-
-  user.resetPinCode = null;
-  user.resetPinExpiresAt = null;
-  user.loginAttempts = 0;
-  user.blockedUntil = null;
-
   await user.save();
+
+  throw new Error("Code si sahihi au ime-expire");
+}
+   
+ user.pin = newPin;
+
+user.resetPinCode = null;
+user.resetPinExpiresAt = null;
+user.resetPinAttempts = 0;
+user.resetPinBlockedUntil = null;
+
+user.loginAttempts = 0;
+user.blockedUntil = null;
+
+await user.save();
 }
 }
    
