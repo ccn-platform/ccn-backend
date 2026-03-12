@@ -1,4 +1,4 @@
-    const mongoose = require("mongoose");
+      const mongoose = require("mongoose");
 const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -84,6 +84,13 @@ if (!customerUser) {
 }
 
     if (!agent) throw new Error("Agent ID inahitajika.");
+
+  const agentDoc = await Agent.findById(agent)
+    .select("user businessCategory businessName agentId systemId")
+    .lean();
+
+    if (!agentDoc) throw new Error("Wakala hakupatikana.");
+
     if (!repaymentPeriod || repaymentPeriod < 1)
       throw new Error("Weka muda sahihi wa kulipa mkopo.");
     if (!items || !Array.isArray(items) || items.length === 0)
@@ -93,10 +100,11 @@ if (!customerUser) {
 
 const eligibility = await this.checkBorrowingEligibility(customer);
 
-if (!eligibility.allowed) {
+ if (!eligibility.allowed) {
 
   try {
 
+    // notify customer
     if (customerUser?.expoPushToken) {
       await pushService.sendTemplate(
         customerUser.expoPushToken,
@@ -106,6 +114,30 @@ if (!eligibility.allowed) {
         }
       );
     }
+
+    
+
+    if (agentDoc?.user) {
+
+      const agentUser = await User.findById(agentDoc.user)
+        .select("expoPushToken fullName")
+        .lean();
+
+      if (agentUser?.expoPushToken) {
+
+        await pushService.sendTemplate(
+          agentUser.expoPushToken,
+          "LOAN_BLOCKED_FOR_AGENT",
+          {
+             name: `${customerUser.fullName} (${customerUser.phone})`,
+            reason: eligibility.reason
+          }
+        );
+
+      }
+
+    }
+
   } catch (err) {
     console.error("Push notification failed:", err.message);
   }
@@ -113,12 +145,6 @@ if (!eligibility.allowed) {
   throw new Error(eligibility.reason);
 }
  
- const agentDoc = await Agent.findById(agent)
-.select("user businessCategory businessName agentId systemId")
-.lean();
- 
-if (!agentDoc) throw new Error("Wakala hakupatikana.");
-      
 
     const categoryId = agentDoc.businessCategory;
 
@@ -149,7 +175,10 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
 
     // notify agent
     if (agentDoc.user) {
-      const agentUser = await User.findById(agentDoc.user);
+
+    const agentUser = await User.findById(agentDoc.user)
+      .select("expoPushToken fullName")
+      .lean();
 
       if (agentUser?.expoPushToken) {
         await pushService.sendTemplate(
@@ -177,13 +206,15 @@ if (!agentDoc) throw new Error("Wakala hakupatikana.");
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + repaymentPeriod);
 
-     const agentUser = agentDoc.user
-  ? await User.findById(agentDoc.user).select("fullName phone expoPushToken")
-  : null;
+  const agentUser = agentDoc.user
+    ? await User.findById(agentDoc.user)
+        .select("fullName phone expoPushToken")
+        .lean()
+    : null;
      
-const categoryDoc = categoryId
-  ? await BusinessCategory.findById(categoryId).select("name")
-  : null;
+     const categoryDoc = categoryId
+        ? await BusinessCategory.findById(categoryId).select("name").lean()
+        : null;
     
     const loan = await Loan.create({
       customer,
@@ -422,13 +453,8 @@ const categoryDoc = categoryId
     // ⭐ SAFE ADD ONLY — SUPPORT OLD + NEW AGENTS
     if (!agent && formData.agentPhone) {
       const normalizedPhone = normalizePhone(formData.agentPhone);
-
-      agent = await Agent.findOne({
-        $or: [
-          { normalizedPhone },             // 🆕 AGENT WAPYA
-          { phone: normalizedPhone },      // BACKWARD COMPATIBLE
-          { phone: formData.agentPhone },  // VERY OLD DATA
-        ],
+       agent = await Agent.findOne({
+         normalizedPhone
       });
     }
 
