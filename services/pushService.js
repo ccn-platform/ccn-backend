@@ -118,21 +118,28 @@ class PushService {
         body: `Hongera ${data.name}, mkopo wa ${data.amount} TZS umekubaliwa.`,
       },
 
+
       LOAN_REJECTED: {
         title: "Mkopo Umekataliwa",
         body: `Samahani ${data.name}, ombi lako halijakubaliwa.`,
       },
 
+      LOAN_BLOCKED: {
+         title: "Ombi la mkopo limezuiwa",
+         body: `Huwezi kuomba mkopo kwa sasa. Sababu: ${data.reason}`,
+       },
 
       LOAN_BLOCKED_FOR_AGENT: {
        title: "Ombi la mkopo limezuiwa",
        body: `${data.name} ombi lake la mkopo limezuiwa kuja kwako kwa sababu ${data.reason}`,
      },
 
+
       CONTROL_NUMBER: {
         title: "Control Number Imekamilika",
         body: `Control Number: ${data.cn} | Kiasi: ${data.amount} TZS.`,
       },
+
 
       PAYMENT_CONFIRMED: {
         title: "Malipo Yamepokelewa",
