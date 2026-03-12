@@ -8,7 +8,7 @@
  *
  * SUPPORTED MOBILE PREFIXES (TZ):
  *   Vodacom → 074, 075, 076, 079
- *   Airtel  → 068, 069, 078
+ *   Airtel  → 068, 069, 078,066
  *   Tigo    → 065, 067, 071
  *   Halotel → 061, 062, 063
  *   TTCL    → 073
@@ -23,7 +23,7 @@
 const TZ_MOBILE_PREFIXES = [
   "61", "62", "63",       // Halotel
   "65", "67", "71",       // Tigo
-  "68", "69", "78",       // Airtel
+  "66","68", "69", "78",       // Airtel
   "73",                  // TTCL
   "74", "75", "76", "79", // Vodacom
   "77",                  // Zantel
