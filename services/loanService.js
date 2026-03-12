@@ -454,6 +454,12 @@ const eligibility = await this.checkBorrowingEligibility(customer);
     if (!agent && formData.agentPhone) {
       const normalizedPhone = normalizePhone(formData.agentPhone);
        agent = await Agent.findOne({
+         $or: [
+            { normalizedPhone },             // 🆕 AGENT WAPYA
+           { phone: normalizedPhone },      // BACKWARD COMPATIBLE
+            { phone: formData.agentPhone },  // VERY OLD DATA
+          ],
+
          normalizedPhone
       });
     }
