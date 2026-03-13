@@ -1,4 +1,4 @@
-  
+ 
  const express = require("express");
 const router = express.Router();
 
@@ -56,9 +56,20 @@ router.post("/forgot-pin", authController.forgotPin);
 // ===============================
 router.post("/reset-pin", authController.resetPin);
 
+// =======================
+// 6️⃣ SAVE PUSH TOKEN
+// =======================
+ router.post(
+  "/save-push-token",
+  auth,
+  roles("customer", "agent"),
+  userController.savePushToken
+);
+
 // ===============================
 // AUTHENTICATED USER
 // ===============================
 router.get("/me", auth, authController.me);
 
 module.exports = router;
+ 
