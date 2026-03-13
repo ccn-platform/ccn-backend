@@ -1,4 +1,4 @@
-       const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -283,7 +283,28 @@ const eligibility = await this.checkBorrowingEligibility(customer);
   source: "SYSTEM",
 });
 
+// ======================================
+// NOTIFY AGENT - NEW LOAN REQUEST
+// ======================================
 
+try {
+
+  if (agentUser?.expoPushToken) {
+
+    await pushService.sendTemplate(
+      agentUser.expoPushToken,
+      "NEW_LOAN_REQUEST",
+      {
+        name: customerUser.fullName,
+        amount: items.reduce((s,i)=>s+i.price*i.quantity,0)
+      }
+    );
+
+  }
+
+} catch (err) {
+  console.error("Push error:", err.message);
+}
 
     return { loanCreated: true, loan };
   }
