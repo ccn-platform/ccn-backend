@@ -1,4 +1,5 @@
- const authService = require("../services/authService");
+   
+    const authService = require("../services/authService");
 const User = require("../models/User");
  const normalizePhone = require("../utils/normalizePhone"); // ⭐ SAFE
 const isNameTooSimilar = require("../utils/nameSimilarity");
@@ -162,7 +163,7 @@ if (duplicate) {
   });
 }
 
-  // ===============================
+      // ===============================
 // 🚨 FRAUD CONTROL → FACE kutumia phone iliyopo
 // ===============================
  
@@ -245,7 +246,9 @@ if (guard && guard.blockedUntil && new Date() < guard.blockedUntil) {
  // ===============================
 // NIDA GUARD START
 // ===============================
- 
+ // ===============================
+// NIDA GUARD START
+// ===============================
  
 if (req.body.nationalId) {
 
@@ -353,38 +356,6 @@ if (existingNida) {
       });
     }
   }
-  /**
-   * 7️⃣ SAVE EXPO PUSH TOKEN
-   * ✅ ADD ONLY — supports BOTH token & expoPushToken
-   */
-  
-async savePushToken(req, res) {
-  try {
-    const token = req.body.token || req.body.pushToken;
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Push token required",
-      });
-    }
-
-    const userId = req.user.userId; // kutoka JWT
-
-    const updatedUser = await userService.savePushToken(userId, token);
-
-    res.json({
-      success: true,
-      message: "Push token saved",
-      user: updatedUser,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-}
 
   /**
    * ======================================================
@@ -530,4 +501,3 @@ async savePushToken(req, res) {
 }
 
 module.exports = new AuthController();                
-  
