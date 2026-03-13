@@ -179,10 +179,14 @@ if (
    * 7️⃣ SAVE EXPO PUSH TOKEN
    * ✅ ADD ONLY — supports BOTH token & expoPushToken
    */
-  
-async savePushToken(req, res) {
+ async savePushToken(req, res) {
   try {
+
+    const userId = req.user.userId; // kutoka JWT
     const token = req.body.token || req.body.pushToken;
+
+    console.log("📲 Saving push token:", token);
+    console.log("👤 User:", userId);
 
     if (!token) {
       return res.status(400).json({
@@ -191,8 +195,6 @@ async savePushToken(req, res) {
       });
     }
 
-    const userId = req.user.userId; // kutoka JWT
-
     const updatedUser = await userService.savePushToken(userId, token);
 
     res.json({
@@ -200,6 +202,7 @@ async savePushToken(req, res) {
       message: "Push token saved",
       user: updatedUser,
     });
+
   } catch (error) {
     res.status(400).json({
       success: false,
