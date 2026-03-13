@@ -13,32 +13,48 @@ class PushService {
    * ======================================================
    */
   async sendRaw(token, title, body, data = {}) {
-
-    if (!token || !token.startsWith("ExponentPushToken")) {
-      console.error("❌ Invalid Expo push token");
+   if (!token || !/^ExponentPushToken\[[A-Za-z0-9-_]+\]$/.test(token)) {
+      console.error("❌ Invalid Expo push token:", token);
       return { success: false };
     }
 
     try {
 
-      const response = await axios.post(this.expoUrl, {
+      const payload = {
         to: token,
         title,
         body,
         data,
         sound: "default",
         priority: "high",
-      });
+      };
+
+      const response = await axios.post(
+        this.expoUrl,
+        payload,
+        {
+          timeout: 5000,
+          headers: {
+            Accept: "application/json",
+            "Accept-Encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      console.log("✅ Push sent:", response.data);
 
       return { success: true, response: response.data };
 
     } catch (error) {
 
-      console.error("❌ Push error:", error.message);
+      console.error(
+        "❌ Push error:",
+        error.response?.data || error.message
+      );
+
       return { success: false };
-
     }
-
   }
 
 
@@ -64,34 +80,38 @@ class PushService {
 
       const requests = chunks.map(chunk => {
 
-  const messages = chunk.map(token => ({
-    to: token,
-    title,
-    body,
-    data,
-    sound: "default",
-    priority: "high",
-  }));
+        const messages = chunk.map(token => ({
+          to: token,
+          title,
+          body,
+          data,
+          sound: "default",
+          priority: "high",
+        }));
 
-  return axios.post(
-    this.expoUrl,
-    messages,
-    {
-      timeout: 5000,
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
+        return axios.post(
+          this.expoUrl,
+          messages,
+          {
+            timeout: 5000,
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json"
+            }
+          }
+        );
 
-});
+      });
+
       const responses = await Promise.all(requests);
+
+      console.log("✅ Bulk push sent:", responses.length);
 
       return responses.map(r => r.data);
 
     } catch (err) {
 
-      console.error("❌ Bulk push error:", err.message);
+      console.error("❌ Bulk push error:", err.response?.data || err.message);
       return [];
 
     }
@@ -118,28 +138,25 @@ class PushService {
         body: `Hongera ${data.name}, mkopo wa ${data.amount} TZS umekubaliwa.`,
       },
 
-
       LOAN_REJECTED: {
         title: "Mkopo Umekataliwa",
         body: `Samahani ${data.name}, ombi lako halijakubaliwa.`,
       },
 
       LOAN_BLOCKED: {
-         title: "Ombi la mkopo limezuiwa",
-         body: `Huwezi kuomba mkopo kwa sasa. Sababu: ${data.reason}`,
-       },
+        title: "Ombi la mkopo limezuiwa",
+        body: `Huwezi kuomba mkopo kwa sasa. Sababu: ${data.reason}`,
+      },
 
       LOAN_BLOCKED_FOR_AGENT: {
-       title: "Ombi la mkopo limezuiwa",
-       body: `${data.name} ombi lake la mkopo limezuiwa kuja kwako kwa sababu ${data.reason}`,
-     },
-
+        title: "Ombi la mkopo limezuiwa",
+        body: `${data.name} ombi lake la mkopo limezuiwa kwa sababu ${data.reason}`,
+      },
 
       CONTROL_NUMBER: {
         title: "Control Number Imekamilika",
         body: `Control Number: ${data.cn} | Kiasi: ${data.amount} TZS.`,
       },
-
 
       PAYMENT_CONFIRMED: {
         title: "Malipo Yamepokelewa",
@@ -147,7 +164,7 @@ class PushService {
       },
 
       DEVICE_LOCKED: {
-        title: "Simu Yamefungwa 🔐",
+        title: "Simu Imefungwa 🔐",
         body: `Simu yako imefungwa kwa sababu ya deni lililochelewa.`,
       },
 
@@ -165,7 +182,6 @@ class PushService {
     }
 
     return this.sendRaw(token, template.title, template.body, data);
-
   }
 
 
