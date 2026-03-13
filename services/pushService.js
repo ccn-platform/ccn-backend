@@ -13,7 +13,7 @@ class PushService {
    * ======================================================
    */
   async sendRaw(token, title, body, data = {}) {
-   if (!token || !/^ExponentPushToken\[[A-Za-z0-9-_]+\]$/.test(token)) {
+   if (!token || !token.includes("PushToken")) {
       console.error("❌ Invalid Expo push token:", token);
       return { success: false };
     }
@@ -130,7 +130,7 @@ class PushService {
 
       WELCOME: {
         title: "Karibu CCN",
-        body: `Habari ${data.name}, akaunti yako imeundwa kikamilifu.`,
+        body: `Habari ${data.name || "mteja"}, akaunti yako imeundwa kikamilifu.`
       },
 
       LOAN_APPROVED: {
@@ -153,10 +153,11 @@ class PushService {
         body: `${data.name} ombi lake la mkopo limezuiwa kwa sababu ${data.reason}`,
       },
 
-      CONTROL_NUMBER: {
-        title: "Control Number Imekamilika",
-        body: `Control Number: ${data.cn} | Kiasi: ${data.amount} TZS.`,
-      },
+      
+      NEW_LOAN_REQUEST: {
+         title: "Ombi jipya la mkopo",
+         body: `${data.name} ametuma ombi jipya la mkopo.`,
+       },
 
       PAYMENT_CONFIRMED: {
         title: "Malipo Yamepokelewa",
