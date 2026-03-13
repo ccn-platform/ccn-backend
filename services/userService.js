@@ -20,7 +20,7 @@ class UserService {
     phone = normalizePhone(phone);
 
     // Check duplicates (NOW SAFE FOR MILLIONS)
-    const exists = await User.findOne({ phone });
+    const exists = await User.findOne({ phoneNormalized: phone });
     if (exists) throw new Error("Hii namba ya simu tayari imesajiliwa.");
 
     // Hash PIN
@@ -148,7 +148,13 @@ async getUserById(userId) {
    */
  async savePushToken(userId, token) {
 
-   if (!token || !token.includes("PushToken")) {
+  if (
+  !token ||
+  typeof token !== "string" ||
+  !token.startsWith("ExponentPushToken") ||
+  token.length < 30
+)
+{
   throw new Error("Invalid Expo push token");
 }
 
@@ -160,10 +166,14 @@ async getUserById(userId) {
 
   // kama token tayari ipo usiiongeze tena
  if (user.expoPushToken !== token) {
+
   user.expoPushToken = token;
   user.pushToken = token;
   user.pushUpdatedAt = new Date();
+
   await user.save();
+
+  console.log("🔔 Push token updated for user:", user.systemId);
 }
 
   return {
