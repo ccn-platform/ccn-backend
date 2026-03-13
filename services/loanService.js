@@ -410,25 +410,27 @@ const eligibility = await this.checkBorrowingEligibility(customer);
 
     creditHistoryService.onLoanApproved(loan).catch(() => {});
 
-    setImmediate(async () => {
-      try {
- 
-        const customerUser = await User.findById(loan.customer);
-        if (customerUser?.expoPushToken) {
-          await pushService.sendTemplate(
-            customerUser.expoPushToken,
-            "CONTROL_NUMBER",
-            {
-              cn: controlNumber.reference,
-              amount: loan.totalPayable,
-            }
-          );
+   setImmediate(async () => {
+  try {
+    const customerUser = await User.findById(loan.customer)
+      .select("fullName expoPushToken");
+
+    if (customerUser?.expoPushToken) {
+      await pushService.sendTemplate(
+        customerUser.expoPushToken,
+        "LOAN_APPROVED",
+        {
+          name: customerUser.fullName,
+          amount: loan.totalPayable,
         }
-      } catch {}
-    });
+      );
+    }
+  } catch (err) {
+    console.error("Push error:", err.message);
+  }
+});
 
-    return { loan, controlNumber };
-
+return { loan, controlNumber };
   } catch (err) {
     await session.abortTransaction();
     throw err;
