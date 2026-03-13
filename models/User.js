@@ -8,7 +8,6 @@ const UserSchema = new mongoose.Schema(
      systemId: { type: String },
 
     fullName: { type: String, required: true },
-
     phone: {
       type: String,
       required: true,
@@ -175,6 +174,7 @@ UserSchema.index({ phoneNormalized: 1, isBlocked: 1 });
  UserSchema.index({ phoneNormalized: 1, role: 1, isBlocked: 1 });
 UserSchema.index({ expoPushToken: 1 });
 UserSchema.index({ pushToken: 1 });
+UserSchema.index({ pushUpdatedAt: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ resetPinExpiresAt: 1 });
 UserSchema.index({ systemId: 1 }, { unique: true });
