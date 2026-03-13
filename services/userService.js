@@ -1,4 +1,4 @@
-  // services/userService.js
+ // services/userService.js
 
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
@@ -166,3 +166,4 @@ async savePushToken(userId, token) {
 }
 
 module.exports = new UserService();
+ 
