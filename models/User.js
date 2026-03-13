@@ -80,6 +80,7 @@ phoneNormalized: {
      */
     pushToken: { type: String, default: null },       // OLD (do not remove)
     expoPushToken: { type: String, default: null },   // ⭐ NEW (USED BY SERVICES)
+    pushUpdatedAt: { type: Date, default: null },
 
     /**
      * ======================================================
