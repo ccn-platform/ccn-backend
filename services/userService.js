@@ -146,24 +146,30 @@ async getUserById(userId) {
    * 8️⃣ Save Expo Push Token
    * ======================================================
    */
-async savePushToken(userId, token) {
+ async savePushToken(userId, token) {
 
   if (!token || !token.startsWith("ExponentPushToken")) {
     throw new Error("Invalid Expo push token");
   }
 
-  const user = await User.findByIdAndUpdate(
-    userId,
-    { expoPushToken: token },
-    { new: true }
-  ).select("fullName phone expoPushToken");
+  const user = await User.findById(userId);
 
-  if (!user) throw new Error("User not found.");
+  if (!user) {
+    throw new Error("User not found.");
+  }
 
-  return user;
+  // kama token tayari ipo usiiongeze tena
+  if (user.expoPushToken !== token) {
+    user.expoPushToken = token;
+    await user.save();
+  }
+
+  return {
+    fullName: user.fullName,
+    phone: user.phone,
+    expoPushToken: user.expoPushToken
+  };
 }
-
 }
-
 module.exports = new UserService();
  
