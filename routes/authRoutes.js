@@ -2,7 +2,7 @@
 const router = express.Router();
 
 const authController = require("../controllers/authController");
- 
+const userController = require("../controllers/userController"); // ⭐ ADD
 const auth = require("../middleware/authMiddleware");
 const roles = require("../middleware/roleMiddleware"); // ⭐ ADD
 const registerGuard = require("../middleware/registerGuard");
@@ -63,7 +63,7 @@ router.post("/reset-pin", authController.resetPin);
   "/save-push-token",
   auth,
   roles("customer", "agent"),
-  authController.savePushToken
+  userController.savePushToken
 );
 
 // ===============================
