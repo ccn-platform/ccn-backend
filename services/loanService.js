@@ -1,4 +1,4 @@
- const mongoose = require("mongoose");
+       const mongoose = require("mongoose");
 const BusinessCategory = require("../models/businessCategory");
 const Loan = require("../models/Loan");
 const ControlNumber = require("../models/controlNumber");
@@ -578,9 +578,15 @@ async function markOverdueLoans() {
 
     // 🔥 Bulk update (haraka sana)
     await Loan.updateMany(
-      { _id: { $in: ids } },
-      { $set: { isOverdue: true, overdueAt: now } }
-    );
+  { _id: { $in: ids } },
+  {
+    $set: {
+      isOverdue: true,
+      overdueAt: now,
+      status: "overdue"
+    }
+  }
+); 
 
     // 🔥 Tengeneza audit logs kwa bulk
     const logs = loans.map(l => ({
