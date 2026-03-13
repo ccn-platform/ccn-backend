@@ -1,4 +1,4 @@
- // services/userService.js
+  // services/userService.js
 
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
@@ -141,35 +141,6 @@ async getUserById(userId) {
     return await User.find(filter).select("-pin");
   }
 
-  /**
-   * ======================================================
-   * 8️⃣ Save Expo Push Token
-   * ======================================================
-   */
- async savePushToken(userId, token) {
-
-  if (!token || !token.startsWith("ExponentPushToken")) {
-    throw new Error("Invalid Expo push token");
-  }
-
-  const user = await User.findById(userId);
-
-  if (!user) {
-    throw new Error("User not found.");
-  }
-
-  // kama token tayari ipo usiiongeze tena
-  if (user.expoPushToken !== token) {
-    user.expoPushToken = token;
-    await user.save();
-  }
-
-  return {
-    fullName: user.fullName,
-    phone: user.phone,
-    expoPushToken: user.expoPushToken
-  };
-}
+  
 }
 module.exports = new UserService();
- 
