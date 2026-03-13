@@ -162,6 +162,17 @@ try {
   }
 
   const tokens = this.generateTokens(user);
+
+
+// push notification
+try {
+  await pushService.sendToUser(user._id, {
+    title: "Karibu CCN",
+    body: `Karibu ${user.fullName}, akaunti yako imefunguliwa.`,
+    type: "WELCOME",
+  });
+} catch (err) {}
+
   return { user, ...tokens };
 }
 
@@ -260,7 +271,17 @@ user.lastLogin = new Date();
 await user.save();
 
 const tokens = this.generateTokens(user);
+// push
+try {
+   
+  await pushService.sendToUser(user._id, {
+  title: "Security Alert",
+  body: "Login mpya imefanyika kwenye akaunti yako.",
+  type: "LOGIN_ALERT",
+});
+} catch (err) {}
 
+ 
 let onboardingStep = null;
 
 if (user.role === "agent") {
@@ -344,6 +365,16 @@ return {
     });
 
     const tokens = this.generateTokens(user);
+// push notification
+try {
+  await pushService.sendToUser(user._id, {
+    title: "Karibu CCN",
+    body: `Karibu ${user.fullName}, akaunti yako imefunguliwa.`,
+    type: "WELCOME",
+  });
+} catch (err) {}
+
+
     return { user, onboardingStep: "PAYOUT_REQUIRED", ...tokens };
   }
 
@@ -366,6 +397,8 @@ return {
     });
 
     const tokens = this.generateTokens(user);
+
+
     return { user, ...tokens };
   }
 // ======================================================
@@ -458,7 +491,7 @@ if (user.resetPinBlockedUntil && new Date() < user.resetPinBlockedUntil) {
   }
 
   await user.save();
-
+  
   throw new Error("Code si sahihi au ime-expire");
 }
    
@@ -473,6 +506,15 @@ user.loginAttempts = 0;
 user.blockedUntil = null;
 
 await user.save();
+
+ try {
+  await pushService.sendToUser(user._id, {
+    title: "PIN Imebadilishwa",
+    body: "PIN yako ya CCN imebadilishwa kikamilifu.",
+    type: "PIN_CHANGED",
+  });
+} catch (err) {}
+
 }
 }
    
