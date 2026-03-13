@@ -126,13 +126,21 @@ deleteRequestedAt: { type: Date, default: null },
   }
 
   // 🔄 Sync push tokens
-  if (this.pushToken && !this.expoPushToken) {
-    this.expoPushToken = this.pushToken;
-  }
+  if (this.pushToken) {
+  this.pushToken = this.pushToken.trim();
+}
 
-  if (this.expoPushToken && !this.pushToken) {
-    this.pushToken = this.expoPushToken;
-  }
+if (this.expoPushToken) {
+  this.expoPushToken = this.expoPushToken.trim();
+}
+
+if (this.pushToken && !this.expoPushToken) {
+  this.expoPushToken = this.pushToken;
+}
+
+if (this.expoPushToken && !this.pushToken) {
+  this.pushToken = this.expoPushToken;
+}
 
   next();
 });
@@ -166,6 +174,7 @@ UserSchema.index({ phoneNormalized: 1, isBlocked: 1 });
  UserSchema.index({ phoneNormalized: 1, role: 1 });
  UserSchema.index({ phoneNormalized: 1, role: 1, isBlocked: 1 });
 UserSchema.index({ expoPushToken: 1 });
+UserSchema.index({ pushToken: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ resetPinExpiresAt: 1 });
 UserSchema.index({ systemId: 1 }, { unique: true });
