@@ -102,16 +102,7 @@ router.put(
   userController.changePin
 );
 
-// =======================
-// 6️⃣ SAVE PUSH TOKEN
-// =======================
- router.post(
-  "/save-push-token",
-  auth,
-  roles("customer", "agent"),
-  userController.savePushToken
-);
-
+ 
 // =======================
 // 9️⃣ REQUEST ACCOUNT DELETE (PLAY STORE REQUIRED)
 // =======================
