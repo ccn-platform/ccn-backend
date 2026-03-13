@@ -175,38 +175,7 @@ if (
     }
   }
 
-  /**
-   * 7️⃣ SAVE EXPO PUSH TOKEN
-   * ✅ ADD ONLY — supports BOTH token & expoPushToken
-   */
-  
-async savePushToken(req, res) {
-  try {
-    const token = req.body.token || req.body.pushToken;
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Push token required",
-      });
-    }
-
-    const userId = req.user.userId; // kutoka JWT
-
-    const updatedUser = await userService.savePushToken(userId, token);
-
-    res.json({
-      success: true,
-      message: "Push token saved",
-      user: updatedUser,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-}
+ 
 /**
  * 8️⃣ REQUEST ACCOUNT DELETE
  */
