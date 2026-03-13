@@ -1,5 +1,5 @@
-     const crypto = require("crypto");
- const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Customer = require("../models/Customer");
@@ -278,6 +278,9 @@ try {
   title: "Security Alert",
   body: "Login mpya imefanyika kwenye akaunti yako.",
   type: "LOGIN_ALERT",
+  data: {
+    phone: user.phone
+  }
 });
 } catch (err) {}
 
@@ -515,6 +518,35 @@ await user.save();
   });
 } catch (err) {}
 
+}
+ /**
+   * ======================================================
+   * 8️⃣ Save Expo Push Token
+   * ======================================================
+   */
+ async savePushToken(userId, token) {
+
+  if (!token || !token.startsWith("ExponentPushToken")) {
+    throw new Error("Invalid Expo push token");
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  // kama token tayari ipo usiiongeze tena
+  if (user.expoPushToken !== token) {
+    user.expoPushToken = token;
+    await user.save();
+  }
+
+  return {
+    fullName: user.fullName,
+    phone: user.phone,
+    expoPushToken: user.expoPushToken
+  };
 }
 }
    
