@@ -182,7 +182,7 @@ if (
   
 async savePushToken(req, res) {
   try {
-    const token = req.body.pushToken || req.body.token;
+    const token = req.body.token || req.body.pushToken;
 
     if (!token) {
       return res.status(400).json({
