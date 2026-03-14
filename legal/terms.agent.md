@@ -177,6 +177,33 @@ Account suspension
 
 Restriction from using services
 
+12.1.1 System Usage Plans
+
+The platform may provide system usage plans that allow the business to continue accessing and using the platform services.
+
+Upon first registration, the business may receive a free trial period of up to 30 days.
+
+After the free trial expires, the business may be required to select a system usage plan in order to continue using the platform services.
+
+The available system usage plans may include:
+
+Plan	Amount (TZS)	Duration
+Weekly Plan	1,300	7 days
+Monthly Plan	5,000	1 month
+Semi-Annual Plan	30,000	6 months
+Annual Plan	60,000	12 months
+
+If the system usage period expires:
+
+access to certain platform services may be restricted
+
+the business may be required to renew the system usage plan to continue using the system
+
+The platform reserves the right to modify the available plans, pricing, or payment methods when necessary.
+
+The platform may suspend or limit access to the system if the required system usage fee is not paid.
+
+
 12.2 Customer Service Fee
 
 The platform may set a service fee for each debt or credit managed through the system.
@@ -261,7 +288,21 @@ Update policies
 
 The business must accept such changes to continue using the services.
 
-Final
+ 4.X No Interest Charged by the Platform
+
+The platform itself does not charge interest on loans or credit transactions between the business and the customer.
+
+Any price, repayment terms, or additional charges related to goods or services are determined solely by the business and the customer based on their agreement.
+
+The platform:
+
+does not act as a lender
+
+does not determine loan interest or credit pricing
+
+does not receive interest payments
+
+The platform only provides a technological system for recording and managing credit information between users.
 
 By using the platform:
 
@@ -454,6 +495,34 @@ kuendesha akaunti
 
 Kutolipa ada kunaweza kusababisha:
 
+
+12.1.1 Mipango ya Matumizi ya Mfumo
+
+Platform inaweza kutoa mipango ya matumizi ya mfumo inayomruhusu mfanyabiashara kuendelea kutumia huduma za platform.
+
+Baada ya kujisajili kwa mara ya kwanza, mfanyabiashara anaweza kupata kipindi cha majaribio (Free Trial) cha hadi siku 30.
+
+Baada ya kipindi cha majaribio kuisha, mfanyabiashara atalazimika kuchagua mpango wa matumizi ya mfumo ili kuendelea kutumia huduma za platform.
+
+Mipango hiyo inaweza kujumuisha:
+
+Mpango	Kiasi (TZS)	Muda
+Weekly Plan	1,300	Siku 7
+Monthly Plan	5,000	Mwezi 1
+Semi-Annual Plan	30,000	Miezi 6
+Annual Plan	60,000	Mwaka 1
+
+Iwapo muda wa matumizi ya mfumo utaisha:
+
+baadhi ya huduma za platform zinaweza kuzuiwa
+
+mfanyabiashara atalazimika kufanya upya mpango wa matumizi ya mfumo ili kuendelea kutumia huduma
+
+Platform ina haki ya kubadilisha mipango, viwango vya ada, au njia za malipo kadri itakavyoona inafaa.
+
+Platform inaweza kusimamisha au kupunguza matumizi ya mfumo iwapo ada ya matumizi ya mfumo haitalipwa baada ya muda wake kuisha.
+
+
 kusimamishwa kwa akaunti
 
 kuzuiwa kutumia huduma
@@ -541,6 +610,24 @@ kubadilisha ada
 kusasisha sera
 
 Mfanyabiashara atalazimika kukubali mabadiliko hayo ili kuendelea kutumia huduma.
+
+ 4.X Hakuna Riba Inayotozwa na Platform
+ni ada tu kwa ajili  ya matumizi ya mfumo
+Platform yenyewe haitozi riba kwenye mikopo au madeni yanayotokea kati ya mfanyabiashara na mteja.
+
+Bei ya bidhaa, masharti ya malipo, au gharama nyingine zozote zinazohusiana na mkopo huamuliwa na mfanyabiashara na mteja kulingana na makubaliano yao.
+
+Platform:
+
+si mkopeshaji
+
+haiweki kiwango cha riba au gharama za mkopo
+
+haipokei malipo ya riba
+
+Platform hutoa tu mfumo wa kiteknolojia wa kurekodi na kusimamia taarifa za mikopo kati ya watumiaji.
+
+Masharti yoyote ya kifedha yanayokubaliwa kati ya mfanyabiashara na mteja yanabaki kuwa wajibu wa pande hizo mbili.
 
 
 Mwisho
