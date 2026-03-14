@@ -1,3 +1,4 @@
+  
  TERMS OF USE – CUSTOMER
 1. Introduction
 
@@ -65,9 +66,49 @@ Not every loan request will be approved.
 
 4.3 Service Fees
 
-The customer will pay a service fee depending on the loan or debt.
+ The customer will pay a service fee depending on the loan or debt.
 The fee is included in the total payable amount.
 This fee is part of the system’s service structure.
+
+4.3.1 Fee Structure
+
+Service fees are determined based on the amount of the loan or debt recorded in the system.
+
+These fees may include:
+
+Application Fee
+
+Approval Fee
+
+The combined amount forms the Total Service Fee, which may be added to the customer’s total debt within the system.
+
+The current service fee structure is as follows:
+
+Loan / Debt Amount	Application Fee	Approval Fee	Total Fee
+100 – 999	50	50	100
+1,000 – 1,999	100	100	200
+2,000 – 2,999	150	150	300
+3,000 – 3,999	200	200	400
+4,000 – 4,999	250	200	450
+5,000 – 6,999	300	250	550
+7,000 – 9,999	400	500	900
+10,000 – 14,999	500	700	1200
+15,000 – 19,999	500	800	1300
+20,000 – 29,999	700	800	1500
+30,000 – 49,999	1000	800	1800
+50,000 – 79,999	1000	1500	2500
+80,000 – 99,999	1500	1500	3000
+100,000 – 149,999	2500	2000	4500
+150,000 – 199,999	2500	2500	5000
+200,000 – 299,999	2500	2500	5500
+300,000 – 499,999	3000	3000	6000
+500,000 – 999,999	3000	4000	7000
+
+Service fees may be added to the total debt recorded in the system.
+
+Unless otherwise specified by the platform, these fees may be paid directly to the respective business outside the application (offline).
+
+The platform reserves the right to modify the fee structure when necessary.
 
 4.4 Business Network
 
@@ -220,6 +261,9 @@ If major changes occur, the customer will be required to accept the new terms be
 These terms are governed and interpreted in accordance with the laws of the
 United Republic of Tanzania.
 
+The platform itself does not act as the lender and does not receive loan repayments unless otherwise specified.
+
+
 Final
 
 By continuing to use the app and its services, the customer confirms that:
@@ -231,6 +275,7 @@ They understand them
 They agree to comply with them
  
  
+
  
  
  
@@ -316,6 +361,28 @@ Mteja atalipa ada ya huduma kulingana na mkopo au deni
 Ada hujumuishwa kwenye jumla ya kiasi cha kulipwa
 
 Ada hii ni sehemu ya muundo wa huduma wa mfumo
+
+4.3.1 Muundo wa Ada
+
+Ada za huduma hupangwa kulingana na kiwango cha mkopo au deni lililorekodiwa kwenye mfumo.
+
+Ada hizi zinaweza kujumuisha:
+
+Ada ya Maombi (Application Fee)
+
+Ada ya Uidhinishaji (Approval Fee)
+
+Jumla ya ada hizi huunda Ada ya Huduma ya Mfumo ambayo inaweza kuongezwa kwenye jumla ya deni la mteja ndani ya mfumo.
+
+Viwango vya sasa vya ada ni kama ifuatavyo:
+
+(weka ile table yako ya fees hapa)
+
+Ada hizi zinaweza kuongezwa kwenye jumla ya deni la mteja ndani ya mfumo.
+
+Isipokuwa kama itaelekezwa vinginevyo na platform, ada hizi zinaweza kulipwa moja kwa moja kwa mfanyabiashara husika nje ya app (offline).
+
+Platform ina haki ya kubadilisha viwango vya ada kadri itakavyoona inafaa kwa uendeshaji wa huduma.
 
 4.4 Network ya Wafanyabiashara
 
@@ -466,6 +533,8 @@ Mteja atalazimika kukubali masharti mapya kabla ya kuendelea kutumia huduma
 Masharti haya yanasimamiwa na kufasiriwa kwa mujibu wa sheria za
 Jamhuri ya Muungano wa Tanzania.
 
+Platform yenyewe si mkopeshaji na haipokei marejesho ya mkopo isipokuwa pale itakapobainishwa vinginevyo.
+
 Mwisho
 
 Kwa kuendelea kutumia app na huduma zake, mteja anathibitisha kuwa:
@@ -474,4 +543,4 @@ Amesoma masharti haya
 
 Ameelewa
 
-Anakubali kuyazingatia 
+Anakubali kuyazingatia
