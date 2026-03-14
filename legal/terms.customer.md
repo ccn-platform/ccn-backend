@@ -66,6 +66,9 @@ Not every loan request will be approved.
 
 4.3 Service Fees
 
+The platform may apply a system service fee for each credit or debt managed through the system.
+The service fee is determined by the platform and may vary depending on the amount of the credit or debt.
+
  The customer will pay a service fee depending on the loan or debt.
 The fee is included in the total payable amount.
 This fee is part of the system’s service structure.
@@ -363,6 +366,9 @@ Ada hujumuishwa kwenye jumla ya kiasi cha kulipwa
 Ada hii ni sehemu ya muundo wa huduma wa mfumo
 
 4.3.1 Muundo wa Ada
+
+Platform inaweza kutoza ada ya huduma ya mfumo kwa kila deni au mkopo unaosimamiwa kupitia mfumo.
+Ada hii huwekwa na platform na inaweza kutofautiana kulingana na kiwango cha mkopo au deni.
 
 Ada za huduma hupangwa kulingana na kiwango cha mkopo au deni lililorekodiwa kwenye mfumo.
 
