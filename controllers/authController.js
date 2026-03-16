@@ -413,6 +413,16 @@ if (existingNida) {
    */
   async registerAgent(req, res) {
     try {
+ // FULL NAME VALIDATION
+    try {
+      req.body.fullName = validateFullNameTZ(req.body.fullName);
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: e.message,
+      });
+    }
+       
       if (req.body.phone) {
         req.body.phone = normalizePhone(req.body.phone);
       }
