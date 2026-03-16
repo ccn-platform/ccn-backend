@@ -113,6 +113,7 @@ const guard = req.registerGuard || null;
 const parts = req.body.fullName.split(" ");
 
  const possibleUsers = await User.find({
+    role: "customer",
   fullName: { $regex: `^${parts[0]}`, $options: "i" }
 }).limit(10);
 
