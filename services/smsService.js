@@ -20,25 +20,6 @@ const africastalking =
 const sms =
   africastalking.SMS;
 
-const formatPhone = (
-  phone
-) => {
-  let clean =
-    String(phone)
-      .replace(/\s+/g, "")
-      .replace(/\+/g, "");
-
-  if (
-    clean.startsWith("0")
-  ) {
-    clean =
-      "255" +
-      clean.slice(1);
-  }
-
-  return clean;
-};
-
 const sendSMS =
   async (
     phone,
@@ -46,14 +27,16 @@ const sendSMS =
   ) => {
     try {
       const formattedPhone =
-        formatPhone(phone);
+        phone.startsWith("+")
+          ? phone
+          : "+" + phone;
 
       const options = {
         to: [
           formattedPhone
         ],
         message,
-        from: "CCN",
+        from: "CCN"
       };
 
       const response =
@@ -62,29 +45,25 @@ const sendSMS =
         );
 
       console.log(
-        "SMS response:",
-        JSON.stringify(
-          response,
-          null,
-          2
-        )
+        "SMS sent:",
+        response
       );
 
       return {
         success: true,
-        data: response,
+        data: response
       };
 
     } catch (error) {
       console.error(
-        "SMS sending failed:",
-        error.message
+        "SMS failed:",
+        error
       );
 
       return {
         success: false,
         error:
-          error.message,
+          error.message
       };
     }
   };
@@ -105,5 +84,5 @@ const sendOTP =
 
 module.exports = {
   sendSMS,
-  sendOTP,
+  sendOTP
 };
